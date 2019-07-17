@@ -29,7 +29,7 @@ class Preprocessor(BasePreprocessor):
     def _normalize(self, markdown_content: str) -> str:
         '''Normalize the source Markdown content to simplify
         further operations: replace ``CRLF`` with ``LF``,
-        remove excess whitespace characters,
+        remove excessive whitespace characters,
         provide trailing newline, etc.
 
         :param markdown_content: Source Markdown content
