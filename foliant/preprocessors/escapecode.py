@@ -1,7 +1,7 @@
 '''
 Preprocessor for Foliant documentation authoring tool.
-Escapes code blocks, inline code, and another content
-that should not be processed by any other preprocessors.
+Escapes code blocks, inline code, and other content parts
+that should not be processed by any preprocessors.
 '''
 
 import re
@@ -27,6 +27,16 @@ class Preprocessor(BasePreprocessor):
         self.logger.debug(f'Preprocessor inited: {self.__dict__}')
 
     def _normalize(self, markdown_content: str) -> str:
+        '''Normalize the source Markdown content to simplify
+        further operations: replace ``CRLF`` with ``LF``,
+        remove excess whitespace characters,
+        provide trailing newline, etc.
+
+        :param markdown_content: Source Markdown content
+
+        :returns: Normalized Markdown content
+        '''
+
         markdown_content = re.sub(r'\r\n', '\n', markdown_content)
         markdown_content = re.sub(r'\r', '\n', markdown_content)
         markdown_content = re.sub(r'\n\n\n+', '\n\n', markdown_content)
@@ -39,6 +49,18 @@ class Preprocessor(BasePreprocessor):
         return markdown_content
 
     def escape(self, markdown_content: str) -> str:
+        '''Replace the parts of Markdown content that should not be processed
+        by any preprocessors (fence code blocks, pre code blocks,
+        inline code, etc.) with pseudo-XML tags. Save these content parts
+        into files. The ``unescapecode`` preprocessor should do the reverse operation.
+
+        :param markdown_content: Markdown content
+
+        :returns: Markdown content with replaced raw parts
+        '''
+
+        self.logger.debug('Normalizing the source content')
+
         markdown_content = self._normalize(markdown_content)
 
         patterns = OrderedDict()
@@ -70,13 +92,21 @@ class Preprocessor(BasePreprocessor):
                 match = re.search(patterns[pattern_type], markdown_content)
 
                 if match:
+                    self.logger.debug(f'Found raw content part, type: {pattern_type}')
+
                     saved_content = f'{match.group("content")}'
 
                     saved_content_hash = f'{md5(saved_content.encode()).hexdigest()}'
 
+                    self.logger.debug(f'Hash: {saved_content_hash}')
+
                     saved_content_file_path = self._cache_dir_path / f'{saved_content_hash}.md'
 
                     if not saved_content_file_path.exists():
+                        self.logger.debug(
+                            f'Content is not found in cache, saving into the file: {saved_content_file_path}'
+                        )
+
                         self._cache_dir_path.mkdir(parents=True, exist_ok=True)
 
                         with open(saved_content_file_path, 'w', encoding='utf8') as saved_content_file:
@@ -103,6 +133,8 @@ class Preprocessor(BasePreprocessor):
         self.logger.info('Applying preprocessor')
 
         for markdown_file_path in self.working_dir.rglob('*.md'):
+            self.logger.debug(f'Processing the file: {markdown_file_path}')
+
             with open(markdown_file_path, encoding='utf8') as markdown_file:
                 markdown_content = markdown_file.read()
 
