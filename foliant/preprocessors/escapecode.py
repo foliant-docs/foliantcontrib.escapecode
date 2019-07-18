@@ -39,10 +39,8 @@ class Preprocessor(BasePreprocessor):
 
         markdown_content = re.sub(r'\r\n', '\n', markdown_content)
         markdown_content = re.sub(r'\r', '\n', markdown_content)
-        markdown_content = re.sub(r'\n\n\n+', '\n\n', markdown_content)
         markdown_content = re.sub(r'(?<=\S)$', '\n', markdown_content)
         markdown_content = re.sub(r'\t', '    ', markdown_content)
-        markdown_content = re.sub(r'[\f\v]', ' ', markdown_content)
         markdown_content = re.sub(r'[ \n]+$', '\n', markdown_content)
         markdown_content = re.sub(r' +\n', '\n', markdown_content)
 
