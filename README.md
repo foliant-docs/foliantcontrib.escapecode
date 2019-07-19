@@ -18,7 +18,7 @@ To install EscapeCode and UnescapeCode preprocessors, run:
 $ pip install foliantcontrib.includes
 ```
 
-More details see below.
+See more details below.
 
 ## Integration with Foliant and Includes
 
@@ -93,7 +93,7 @@ Below you can see an example of Markdown content with code blocks and inline cod
     One more fence code block:
 
     ~~~
-    # This is a comment that should not be interpretted as a heading
+    # This is a comment that should not be interpreted as a heading
 
     print('Hello World')
     ~~~
