@@ -92,7 +92,20 @@ class Preprocessor(BasePreprocessor):
                 if match:
                     self.logger.debug(f'Found raw content part, type: {pattern_type}')
 
-                    saved_content = f'{match.group("content")}'
+                    if pattern_type == 'block_fence':
+                        before = f'{match.group("before")}'
+                        after = f'{match.group("after")}'
+                        saved_content = f'{match.group("content")}'
+
+                    elif pattern_type == 'block_pre':
+                        before = f'{match.group("before")}'
+                        after = f'\n{match.group("after")}'
+                        saved_content = f'{match.group("content")}'[:-1]
+
+                    elif pattern_type == 'inline_code':
+                        before = ''
+                        after = ''
+                        saved_content = f'{match.group("content")}'
 
                     saved_content_hash = f'{md5(saved_content.encode()).hexdigest()}'
 
@@ -114,11 +127,7 @@ class Preprocessor(BasePreprocessor):
 
                     tag = f'<escaped hash="{saved_content_hash}"></escaped>'
 
-                    if pattern_type.startswith('block_'):
-                        match_str_replacement = f'{match.group("before")}{tag}{match.group("after")}'
-
-                    elif pattern_type.startswith('inline_'):
-                        match_str_replacement = f'{tag}'
+                    match_str_replacement = f'{before}{tag}{after}'
 
                     markdown_content = markdown_content.replace(match_str, match_str_replacement, 1)
 
