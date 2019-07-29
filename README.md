@@ -28,6 +28,10 @@ The `escape_code` project’s config option, if set to `true`, provides applying
 
 In this mode EscapeCode and UnescapeCode preprocessors deprecate _unescape preprocessor.
 
+    >    **Note**
+    >
+    >    The preprocessor _unescape is a part of Foliant core. It allows to use pseudo-XML tags in code examples. If you want an opening tag not to be interpreted by any preprocessor, precede this tag with the `<` character. The preprocessor _unescape applies after all other preprocessors and removes such characters.
+
 Config example:
 
 ```yaml
