@@ -46,20 +46,16 @@ class Preprocessor(BasePreprocessor):
 
         return markdown_content
 
-    def escape(self, markdown_content: str) -> str:
+    def _escape(self, markdown_content: str) -> str:
         '''Replace the parts of Markdown content that should not be processed
         by any preprocessors (fence code blocks, pre code blocks,
         inline code, etc.) with pseudo-XML tags. Save these content parts
-        into files. The ``unescapecode`` preprocessor should do the reverse operation.
+        into files.
 
         :param markdown_content: Markdown content
 
         :returns: Markdown content with replaced raw parts
         '''
-
-        self.logger.debug('Normalizing the source content')
-
-        markdown_content = self._normalize(markdown_content)
 
         patterns = OrderedDict()
 
@@ -70,15 +66,15 @@ class Preprocessor(BasePreprocessor):
                 r'(?:(?:[^\n]*\n)*?)' +
                 r'(?P=backticks)' +
             r')' +
-            r'(?P<after>$|\n)'
+            r'(?P<after>\n)'
         )
 
         patterns['block_pre'] = re.compile(
-            r'(?P<before>^|\n)' +
+            r'(?P<before>^|\n\n)' +
             r'(?P<content>' +
                 r'(?:(?:    [^\n]*\n)+?)' +
             r')' +
-            r'(?P<after>$|\n)'
+            r'(?P<after>\n)'
         )
 
         patterns['inline_code'] = re.compile(
@@ -135,6 +131,49 @@ class Preprocessor(BasePreprocessor):
                     break
 
         return markdown_content
+
+    def escape(self, markdown_content: str) -> str:
+        '''Replace the raw parts of Markdown content,
+        excluding diagram definitions, with pseudo-XML tags.
+        The ``unescapecode`` preprocessor should do the reverse operation.
+
+        :param markdown_content: Markdown content
+
+        :returns: Markdown content with replaced raw parts.
+            Diagram definitions are ignored
+        '''
+
+        self.logger.debug('Normalizing the source content')
+
+        markdown_content = self._normalize(markdown_content)
+
+        diagram_tags = (
+            'blockdiag',
+            'seqdiag',
+            'actdiag',
+            'nwdiag',
+            'plantuml',
+            'graphviz'
+        )
+
+        diagram_pattern = re.compile(
+            rf'((?<!\<)\<(?P<tag>{"|".join(diagram_tags)})(?:\s[^\<\>]*)?\>.*?\<\/(?P=tag)\>)',
+            flags=re.DOTALL
+        )
+
+        processed_content = ''
+
+        markdown_content_parts = diagram_pattern.split(markdown_content)
+
+        for markdown_content_part in markdown_content_parts:
+
+            if diagram_pattern.fullmatch(markdown_content_part):
+                processed_content += markdown_content_part
+
+            else:
+                processed_content += self._escape(markdown_content_part)
+
+        return processed_content
 
     def apply(self):
         self.logger.info('Applying preprocessor')
