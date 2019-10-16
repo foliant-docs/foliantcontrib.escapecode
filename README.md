@@ -52,6 +52,16 @@ preprocessors:
 
 If the `escape_code` option isn’t used or set to `false`, backward compatibility mode is involved. In this mode EscapeCode and UnescapeCode aren’t applied automatically, but _unescape preprocessor is applied.
 
+In more complicated case, you may pass some custom options to EscapeCode preprocessor:
+
+```
+escape_code:
+    options:
+        ...
+```
+
+Custom options available in EscapeCode since version 1.0.2. Foliant core supports passing custom options to EscapeCode preprocessor as the value of `escape_code.options` parameter since version 1.0.11. Options are described below.
+
 The Python package that includes EscapeCode and UnescapeCode preprocessors is the dependence of Includes preprocessor since version 1.1.1. At the same time this package isn’t a dependence of Foliant core. To use `escape_code` config option in Foliant core, you have to install the package with EscapeCode and UnescapeCode preprocessors separately.
 
 ## Explicit Enabling
@@ -79,6 +89,45 @@ preprocessors:
 The default values are shown in this example. EscapeCode and related UnescapeCode must work with the same cache directory.
 
 Note that if you use Includes preprocessor, and the included content doesn’t belong to the current Foliant project, there’s no way to escape raw parts of this content before Includes preprocessor is applied.
+
+## Config
+
+Since version 1.0.2, EscapeCode preprocessor supports the option `actions` in additional to `cache_dir`.
+
+The value of `actions` options should be a list of acceptable actions. By default, the following list is used:
+
+```yaml
+actions:
+    - normalize
+    - escape:
+        - fence_blocks
+        - pre_blocks
+        - inline_code
+```
+
+This default list may be overridden. For example:
+
+```yaml
+actions:
+    - normalize
+    - escape:
+        - fence_blocks
+        - inline_code
+        - tags:
+            - plantuml
+            - seqdiag
+        - comments
+```
+
+Meanings of parameters:
+
+* `normalize`—perform normalization;
+* `escape`—perform escaping of certain types of raw content:
+    * `fence_blocks`—fence code blocks;
+    * `pre_blocks`—pre code blocks;
+    * `inline_code`—inline code;
+    * `comments`—HTML-style comments, also usual for Markdown;
+    * `tags`—content of certain tags with the tags themselves, for example `plantuml` for `<<plantuml>...</plantuml>`.
 
 ## Usage
 
@@ -108,7 +157,7 @@ Below you can see an example of Markdown content with code blocks and inline cod
         mov ah, 9;
         int 21h;
 
-The preprocessor EscapeCode will do the following replacements:
+The preprocessor EscapeCode with default behavior will do the following replacements:
 
     # Heading
 
