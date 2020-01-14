@@ -15,7 +15,7 @@ Also, before the replacement, EscapeCode normalizes the source Markdown content 
 To install EscapeCode and UnescapeCode preprocessors, run:
 
 ```bash
-$ pip install foliantcontrib.includes
+$ pip install foliantcontrib.escapecode
 ```
 
 See more details below.
