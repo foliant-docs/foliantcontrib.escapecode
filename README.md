@@ -1,3 +1,5 @@
+[![](https://img.shields.io/pypi/v/foliantcontrib.escapecode.svg)](https://pypi.org/project/foliantcontrib.escapecode/) [![](https://img.shields.io/github/v/tag/foliant-docs/foliantcontrib.escapecode.svg?label=GitHub)](https://github.com/foliant-docs/foliantcontrib.escapecode)
+
 # EscapeCode and UnescapeCode
 
 EscapeCode and UnescapeCode preprocessors work in pair.
@@ -66,7 +68,7 @@ The Python package that includes EscapeCode and UnescapeCode preprocessors is th
 
 ## Explicit Enabling
 
-You may not to use the `escape_code` option and call the preprocessors explicitly:
+You may not want to use the `escape_code` option and call the preprocessors explicitly:
 
 ```yaml
 preprocessors:
