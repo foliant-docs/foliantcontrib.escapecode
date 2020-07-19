@@ -1,3 +1,7 @@
+# 1.0.3
+
+-   Do not fail the preprocessor if saved code is not found, show warning message instead.
+
 # 1.0.2
 
 -   Improve flexibility: add new actions, allow to override defaults.
