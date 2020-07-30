@@ -1,3 +1,7 @@
+# 1.0.4
+
+-   Addition to normalization: remove BOM.
+
 # 1.0.3
 
 -   Do not fail the preprocessor if saved code is not found, show warning message instead.

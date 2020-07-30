@@ -76,6 +76,8 @@ class Preprocessor(BasePreprocessor):
         :returns: Normalized Markdown content
         '''
 
+        markdown_content = re.sub(r'^\ufeff', '', markdown_content)
+        markdown_content = re.sub(r'\ufeff', '\u2060', markdown_content)
         markdown_content = re.sub(r'\r\n', '\n', markdown_content)
         markdown_content = re.sub(r'\r', '\n', markdown_content)
         markdown_content = re.sub(r'(?<=\S)$', '\n', markdown_content)
