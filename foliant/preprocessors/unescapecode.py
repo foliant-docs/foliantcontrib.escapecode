@@ -11,6 +11,7 @@ OptionValue = int or float or bool or str
 
 from foliant.utils import output
 from foliant.preprocessors.base import BasePreprocessor
+from concurrent.futures import ThreadPoolExecutor
 
 
 class Preprocessor(BasePreprocessor):
@@ -83,19 +84,24 @@ class Preprocessor(BasePreprocessor):
 
         return markdown_content
 
+    def process_file(self, markdown_file_path):
+        self.logger.debug(f'Processing the file: {markdown_file_path}')
+
+        with open(markdown_file_path, encoding='utf8') as markdown_file:
+            markdown_content = markdown_file.read()
+
+        processed_content = self.unescape(markdown_content)
+
+        if processed_content:
+            with open(markdown_file_path, 'w', encoding='utf8') as markdown_file:
+                markdown_file.write(processed_content)
+
+    def process_all_files(self, max_workers: int = None):
+        """Apply the unescape function to all markdown files in the working directory"""
+        with ThreadPoolExecutor(max_workers) as executor:
+            executor.map(self.process_file, self.working_dir.rglob('*.md'))
+
     def apply(self):
         self.logger.info('Applying preprocessor')
-
-        for markdown_file_path in self.working_dir.rglob('*.md'):
-            self.logger.debug(f'Processing the file: {markdown_file_path}')
-
-            with open(markdown_file_path, encoding='utf8') as markdown_file:
-                markdown_content = markdown_file.read()
-
-            processed_content = self.unescape(markdown_content)
-
-            if processed_content:
-                with open(markdown_file_path, 'w', encoding='utf8') as markdown_file:
-                    markdown_file.write(processed_content)
-
+        self.process_all_files()
         self.logger.info('Preprocessor applied')

@@ -5,6 +5,7 @@ that should not be processed by any preprocessors.
 '''
 
 import re
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from hashlib import md5
 
@@ -249,19 +250,24 @@ class Preprocessor(BasePreprocessor):
 
         return markdown_content
 
+    def process_file(self, markdown_file_path):
+        self.logger.debug(f'Processing the file: {markdown_file_path}')
+
+        with open(markdown_file_path, encoding='utf8') as markdown_file:
+            markdown_content = markdown_file.read()
+
+        processed_content = self.escape(markdown_content)
+
+        if processed_content:
+            with open(markdown_file_path, 'w', encoding='utf8') as markdown_file:
+                markdown_file.write(processed_content)
+
+    def process_all_files(self, max_workers: int = None):
+        """Apply the escape function to all markdown files in the working directory"""
+        with ThreadPoolExecutor(max_workers) as executor:
+            executor.map(self.process_file, self.working_dir.rglob('*.md'))
+
     def apply(self):
         self.logger.info('Applying preprocessor')
-
-        for markdown_file_path in self.working_dir.rglob('*.md'):
-            self.logger.debug(f'Processing the file: {markdown_file_path}')
-
-            with open(markdown_file_path, encoding='utf8') as markdown_file:
-                markdown_content = markdown_file.read()
-
-            processed_content = self.escape(markdown_content)
-
-            if processed_content:
-                with open(markdown_file_path, 'w', encoding='utf8') as markdown_file:
-                    markdown_file.write(processed_content)
-
+        self.process_all_files()
         self.logger.info('Preprocessor applied')
