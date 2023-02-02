@@ -41,7 +41,7 @@ class Preprocessor(BasePreprocessor):
     _raw_patterns['pre_blocks'] = re.compile(
         r'(?P<before>^|\n\n)' +
         r'(?P<content>' +
-            r'(?:(?:    [^\n]*\n)+?)' +
+            r'(?P<indent> +)(?:(?:[^\n]*\n)+?)' +
         r')' +
         r'(?P<after>\n)'
     )
@@ -136,17 +136,20 @@ class Preprocessor(BasePreprocessor):
                     before = f'{match.group("before")}'
                     after = f'{match.group("after")}'
                     content_to_save = f'{match.group("content")}'
+                    indent = 0
 
                 elif raw_type == 'pre_blocks':
                     before = f'{match.group("before")}'
                     after = f'\n{match.group("after")}'
                     content_to_save = f'{match.group("content")}'[:-1]
+                    indent = len(match.group("indent"))
 
                 content_to_save_hash = self._save_raw_content(content_to_save)
 
                 match_string = match.group(0)
 
-                tag_to_insert = f'<escaped hash="{content_to_save_hash}"></escaped>'
+                tag_to_insert = f'<escaped hash="{content_to_save_hash}" indent="{indent}" sub="0" ></escaped>'
+
                 match_string_replacement = f'{before}{tag_to_insert}{after}'
                 markdown_content = markdown_content.replace(match_string, match_string_replacement, 1)
 
@@ -170,7 +173,7 @@ class Preprocessor(BasePreprocessor):
             content_to_save = match.group(0)
             content_to_save_hash = self._save_raw_content(content_to_save)
 
-            return f'<escaped hash="{content_to_save_hash}"></escaped>'
+            return f'<escaped hash="{content_to_save_hash}" indent="0" sub="0" ></escaped>'
 
         return self._raw_patterns[raw_type].sub(_sub, markdown_content)
 
@@ -191,7 +194,7 @@ class Preprocessor(BasePreprocessor):
             content_to_save = match.group(0)
             content_to_save_hash = self._save_raw_content(content_to_save)
 
-            return f'<escaped hash="{content_to_save_hash}"></escaped>'
+            return f'<escaped hash="{content_to_save_hash}" indent="0" sub="0" ></escaped>'
 
         tag_pattern = re.compile(
             rf'(?<!\<)\<(?P<tag>{re.escape(tag)})' +

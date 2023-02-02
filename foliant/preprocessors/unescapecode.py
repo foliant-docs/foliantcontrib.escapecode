@@ -41,6 +41,7 @@ class Preprocessor(BasePreprocessor):
         self.logger.debug(f'Processing the tag, options: {options}')
 
         saved_content_hash = options.get('hash', '')
+        sub = options.get('sub')
 
         saved_content_file_path = self._cache_dir_path / f'{saved_content_hash}.md'
 
@@ -48,7 +49,11 @@ class Preprocessor(BasePreprocessor):
 
         if saved_content_file_path.exists():
             with open(saved_content_file_path, encoding='utf8') as saved_content_file:
-                saved_content = saved_content_file.read()
+                lines = saved_content_file.read().split('\n')
+                saved_content = []
+                for line in lines:
+                    saved_content.append(line[sub:])
+                saved_content = '\n'.join(saved_content)
 
             if self.pattern.search(saved_content):
                 self.logger.debug('Recursive call of the <escaped> tags processing')
