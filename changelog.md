@@ -1,3 +1,7 @@
+# 1.0.5
+
+-   Added options indent and sub for escaped tag
+
 # 1.0.4
 
 -   Addition to normalization: remove BOM.
