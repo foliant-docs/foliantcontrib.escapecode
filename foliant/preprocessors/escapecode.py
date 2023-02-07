@@ -41,7 +41,7 @@ class Preprocessor(BasePreprocessor):
     _raw_patterns['pre_blocks'] = re.compile(
         r'(?P<before>^|\n\n)' +
         r'(?P<content>' +
-            r'(?P<indent> +)(?:(?:[^\n]*\n)+?)' +
+            r'(?P<indent> +)(?:(?:[^(\n|\={3}|\!{3}|\?{3}|\?{3}\+)]*\n)+?)' +
         r')' +
         r'(?P<after>\n)'
     )
