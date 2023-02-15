@@ -63,6 +63,15 @@ class Preprocessor(BasePreprocessor):
         self.logger = self.logger.getChild('escapecode')
 
         self.logger.debug(f'Preprocessor inited: {self.__dict__}')
+        try:
+            new_inline_pattern = self.options['pattern_override']['inline_code']
+            self._raw_patterns['inline_code'] = re.compile(
+                new_inline_pattern
+            )
+            self.logger.debug(f"inline_code replaced by {new_inline_pattern}")
+        except:
+            pass
+        self.logger.debug(f"inline_code: {self._raw_patterns['inline_code']}")
         self.logger.debug(f'Options: {self.options}')
 
     def _normalize(self, markdown_content: str) -> str:
