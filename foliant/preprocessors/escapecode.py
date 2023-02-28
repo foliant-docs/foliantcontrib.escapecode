@@ -18,197 +18,6 @@ from marko.helpers import Source
 from marko.md_renderer import MarkdownRenderer
 
 
-class foliantMarkdown(Markdown):
-    def render(self, foliant_obj) -> str:
-        """Call ``self.renderer.render(text)``.
-        Override this to handle parsed result.
-        """
-        self.renderer.foliant_obj = foliant_obj
-        parsed = foliant_obj.content
-        self.renderer.root_node = parsed
-        with self.renderer as r:
-            return r.render(parsed)
-
-
-marko.Markdown = foliantMarkdown
-
-
-class HTMLBlock(block.HTMLBlock):
-
-    def __init__(self, lines: str) -> None:
-        self.children = lines
-        self.id = self.id
-
-    @classmethod
-    def match(cls, source: Source) -> int or bool:
-        if source.expect_re(r"(?i) {,3}<(script|pre|style|textarea)[>\s]"):
-            assert source.match
-            cls._end_cond = re.compile(rf"(?i)</{source.match.group(1)}>")
-            cls.id = 1
-            return 1
-        if source.expect_re(r" {,3}<!--"):
-            cls._end_cond = re.compile(r"-->")
-            cls.id = 2
-            return 2
-        if source.expect_re(r" {,3}<\?"):
-            cls._end_cond = re.compile(r"\?>")
-            cls.id = 3
-            return 3
-        if source.expect_re(r" {,3}<!"):
-            cls._end_cond = re.compile(r">")
-            cls.id = 4
-            return 4
-        if source.expect_re(r" {,3}<!\[CDATA\["):
-            cls._end_cond = re.compile(r"\]\]>")
-            cls.id = 5
-            return 5
-        block_tag = r"(?:{})".format("|".join(patterns.tags))
-        if source.expect_re(r"(?im) {,3}</?%s(?: +|/?>|$)" % block_tag):
-            cls._end_cond = None
-            cls.id = 6
-            return 6
-        if source.expect_re(
-            r"(?m) {,3}(<%(tag)s(?:%(attr)s)*[^\n\S]*/?>|</%(tag)s[^\n\S]*>)[^\n\S]*$"
-            % {"tag": patterns.tag_name, "attr": patterns.attribute_no_lf}
-        ):
-            cls._end_cond = None
-            cls.id = 7
-            return 7
-
-        return False
-
-block.HTMLBlock = HTMLBlock
-
-class MarkdownRenderer(MarkdownRenderer):
-    def _check_options(self, raw_type: str, actions) -> bool:
-        for action in actions:
-            if type(action) == dict:
-                for escape_action in action['escape']:
-                    if escape_action == raw_type:
-                        return True
-        return False
-
-    def render_setext_heading(self, element: block.SetextHeading) -> str:
-        result = self._prefix + self.render_children(element)
-        self._prefix = self._second_prefix
-        return result
-
-    def render_code_block(self, element: block.CodeBlock) -> str:
-        foliant_obj = self.foliant_obj
-        indent = " " * 4; raw_type = 'pre_blocks'
-        exclude = False
-        run_escapecode = self._check_options(raw_type, foliant_obj.options.get('actions', []))
-        lines = self.render_children(element).splitlines()
-        pattern = foliant_obj.options.get('pattern_override').get(raw_type, '')
-        if run_escapecode:
-            if re.search(foliant_obj.pre_blocks_pattern, lines[0]): run_escapecode = False
-            for i, line in enumerate(lines):
-                indent = " " * 4
-                if line.startswith(" "):
-                    indent = " " * (4 + len(re.search(r'^ +', line).group(0)))
-                if pattern: exclude = re.compile(pattern).search(line)
-                if exclude or re.search(r'\s<escaped*></escaped>', line) or re.search(foliant_obj.pre_blocks_pattern, line):
-                    lines[i] = indent + line.strip()
-                elif line.strip() == "":
-                    lines[i] = line.strip()
-                else:
-                    lines[i] = indent + foliant_obj.escape_for_raw_type(line.strip(), raw_type)
-            indent = ''
-        lines = [self._prefix + indent + lines[0]] + [
-            self._second_prefix + indent + line for line in lines[1:]
-        ]
-        self._prefix = self._second_prefix
-        return "\n".join(lines) + "\n"
-
-    def render_fenced_code(self, element: block.FencedCode) -> str:
-        foliant_obj = self.foliant_obj
-        raw_type = 'fence_blocks'
-        run_escapecode = self._check_options(raw_type, foliant_obj.options.get('actions', []))
-        extra = f" {element.extra}" if element.extra else ""
-        first_line = f"```{element.lang}{extra}"
-        if run_escapecode:
-            first_line = foliant_obj.escape_for_raw_type(first_line, raw_type)
-        lines = [first_line]
-        for line in self.render_children(element).splitlines():
-            if line.strip() != "":
-                lines.append(self._second_prefix + line)
-            else:
-                lines.append(line)
-        last_line = self._second_prefix + "```"
-        lines.append(last_line)
-        block = "\n".join(lines)
-        if run_escapecode:
-            if not re.search(r'<escaped*></escaped>', line):
-                block = foliant_obj.escape_for_raw_type(block, raw_type)
-        self._prefix = self._second_prefix
-        return self._prefix + block + "\n"
-
-    def render_code_span(self, element: inline.CodeSpan) -> str:
-        text = element.children
-        foliant_obj = self.foliant_obj
-        raw_type = 'inline_code'
-        exclude = False
-        run_escapecode = self._check_options(raw_type, foliant_obj.options.get('actions', []))
-        pattern = foliant_obj.options.get('pattern_override').get(raw_type, '')
-        if run_escapecode:
-            if pattern: exclude = re.compile(pattern).search(text)
-            if exclude or re.search(r'<escaped*></escaped>', text):
-                text = text
-            else:
-                text = foliant_obj.escape_for_raw_type(text, raw_type)
-        if text and text[0] == "`" or text[-1] == "`":
-            return f"`` {text} ``"
-        return f"`{text}`"
-
-    def render_thematic_break(self, element: block.ThematicBreak) -> str:
-        result = self._prefix + "---\n"
-        self._prefix = self._second_prefix
-        return result
-
-    def render_list(self, element: block.List) -> str:
-        result = []
-        if element.ordered:
-            for num, child in enumerate(element.children, element.start):
-                with self.container(f"{num}. ", " " * (len(str(num)) + 2)):
-                    result.append(self.render(child))
-        else:
-            for child in element.children:
-                with self.container(f"{element.bullet} ", "  "):
-                    result.append(self.render(child))
-        self._prefix = self._second_prefix
-        for num, item in enumerate(result):
-            no_new_line = False
-            lines = item.split("\n")
-            for i, line in enumerate(lines):
-                if len(lines) <= 2:
-                    no_new_line = True
-                if line.strip() == "":
-                    lines[i] = ""
-            if no_new_line:
-                result[num] = "\n".join(lines)
-            else:
-                result[num] = "\n".join(lines) +"\n"
-
-        return "".join(result)
-
-    def render_html_block(self, element: block.HTMLBlock) -> str:
-        children = element.children
-        raw_type = 'comments'
-        foliant_obj = self.foliant_obj
-        run_escapecode = self._check_options(raw_type, foliant_obj.options.get('actions', []))
-        exclude = False
-        pattern = foliant_obj.options.get('pattern_override').get(raw_type, '')
-        if element.id == 2 and run_escapecode:
-            if pattern: exclude = re.compile(pattern).search(children)
-            if exclude or re.search(r'<escaped*></escaped>', children):
-                children = children
-            else:
-                children = foliant_obj.escape_for_raw_type(children, raw_type)
-        result = self._prefix + children + "\n"
-        self._prefix = self._second_prefix
-        return result
-
-
 class Preprocessor(BasePreprocessor):
     defaults = {
         'cache_dir': Path('.escapecodecache'),
@@ -439,3 +248,194 @@ class Preprocessor(BasePreprocessor):
                     markdown_file.write(processed_content)
 
         self.logger.info('Preprocessor applied')
+
+
+class foliantMarkdown(Markdown):
+    def render(self, foliant_obj) -> str:
+        """Call ``self.renderer.render(text)``.
+        Override this to handle parsed result.
+        """
+        self.renderer.foliant_obj = foliant_obj
+        parsed = foliant_obj.content
+        self.renderer.root_node = parsed
+        with self.renderer as r:
+            return r.render(parsed)
+
+
+marko.Markdown = foliantMarkdown
+
+
+class HTMLBlock(block.HTMLBlock):
+
+    def __init__(self, lines: str) -> None:
+        self.children = lines
+        self.id = self.id
+
+    @classmethod
+    def match(cls, source: Source) -> int or bool:
+        if source.expect_re(r"(?i) {,3}<(script|pre|style|textarea)[>\s]"):
+            assert source.match
+            cls._end_cond = re.compile(rf"(?i)</{source.match.group(1)}>")
+            cls.id = 1
+            return 1
+        if source.expect_re(r" {,3}<!--"):
+            cls._end_cond = re.compile(r"-->")
+            cls.id = 2
+            return 2
+        if source.expect_re(r" {,3}<\?"):
+            cls._end_cond = re.compile(r"\?>")
+            cls.id = 3
+            return 3
+        if source.expect_re(r" {,3}<!"):
+            cls._end_cond = re.compile(r">")
+            cls.id = 4
+            return 4
+        if source.expect_re(r" {,3}<!\[CDATA\["):
+            cls._end_cond = re.compile(r"\]\]>")
+            cls.id = 5
+            return 5
+        block_tag = r"(?:{})".format("|".join(patterns.tags))
+        if source.expect_re(r"(?im) {,3}</?%s(?: +|/?>|$)" % block_tag):
+            cls._end_cond = None
+            cls.id = 6
+            return 6
+        if source.expect_re(
+            r"(?m) {,3}(<%(tag)s(?:%(attr)s)*[^\n\S]*/?>|</%(tag)s[^\n\S]*>)[^\n\S]*$"
+            % {"tag": patterns.tag_name, "attr": patterns.attribute_no_lf}
+        ):
+            cls._end_cond = None
+            cls.id = 7
+            return 7
+
+        return False
+
+block.HTMLBlock = HTMLBlock
+
+class MarkdownRenderer(MarkdownRenderer):
+    def _check_options(self, raw_type: str, actions) -> bool:
+        for action in actions:
+            if type(action) == dict:
+                for escape_action in action['escape']:
+                    if escape_action == raw_type:
+                        return True
+        return False
+
+    def render_setext_heading(self, element: block.SetextHeading) -> str:
+        result = self._prefix + self.render_children(element)
+        self._prefix = self._second_prefix
+        return result
+
+    def render_code_block(self, element: block.CodeBlock) -> str:
+        foliant_obj = self.foliant_obj
+        indent = " " * 4; raw_type = 'pre_blocks'
+        exclude = False
+        run_escapecode = self._check_options(raw_type, foliant_obj.options.get('actions', []))
+        lines = self.render_children(element).splitlines()
+        pattern = foliant_obj.options.get('pattern_override').get(raw_type, '')
+        if run_escapecode:
+            if re.search(foliant_obj.pre_blocks_pattern, lines[0]): run_escapecode = False
+            for i, line in enumerate(lines):
+                indent = " " * 4
+                if line.startswith(" "):
+                    indent = " " * (4 + len(re.search(r'^ +', line).group(0)))
+                if pattern: exclude = re.compile(pattern).search(line)
+                if exclude or re.search(r'\s<escaped*></escaped>', line) or re.search(foliant_obj.pre_blocks_pattern, line):
+                    lines[i] = indent + line.strip()
+                elif line.strip() == "":
+                    lines[i] = line.strip()
+                else:
+                    lines[i] = indent + foliant_obj.escape_for_raw_type(line.strip(), raw_type)
+            indent = ''
+        lines = [self._prefix + indent + lines[0]] + [
+            self._second_prefix + indent + line for line in lines[1:]
+        ]
+        self._prefix = self._second_prefix
+        return "\n".join(lines) + "\n"
+
+    def render_fenced_code(self, element: block.FencedCode) -> str:
+        foliant_obj = self.foliant_obj
+        raw_type = 'fence_blocks'
+        run_escapecode = self._check_options(raw_type, foliant_obj.options.get('actions', []))
+        extra = f" {element.extra}" if element.extra else ""
+        first_line = f"```{element.lang}{extra}"
+        if run_escapecode:
+            first_line = foliant_obj.escape_for_raw_type(first_line, raw_type)
+        lines = [first_line]
+        for line in self.render_children(element).splitlines():
+            if line.strip() != "":
+                lines.append(self._second_prefix + line)
+            else:
+                lines.append(line)
+        last_line = self._second_prefix + "```"
+        lines.append(last_line)
+        block = "\n".join(lines)
+        if run_escapecode:
+            if not re.search(r'<escaped*></escaped>', line):
+                block = foliant_obj.escape_for_raw_type(block, raw_type)
+        self._prefix = self._second_prefix
+        return self._prefix + block + "\n"
+
+    def render_code_span(self, element: inline.CodeSpan) -> str:
+        text = element.children
+        foliant_obj = self.foliant_obj
+        raw_type = 'inline_code'
+        exclude = False
+        run_escapecode = self._check_options(raw_type, foliant_obj.options.get('actions', []))
+        pattern = foliant_obj.options.get('pattern_override').get(raw_type, '')
+        if run_escapecode:
+            if pattern: exclude = re.compile(pattern).search(text)
+            if exclude or re.search(r'<escaped*></escaped>', text):
+                text = text
+            else:
+                text = foliant_obj.escape_for_raw_type(text, raw_type)
+        if text and text[0] == "`" or text[-1] == "`":
+            return f"`` {text} ``"
+        return f"`{text}`"
+
+    def render_thematic_break(self, element: block.ThematicBreak) -> str:
+        result = self._prefix + "---\n"
+        self._prefix = self._second_prefix
+        return result
+
+    def render_list(self, element: block.List) -> str:
+        result = []
+        if element.ordered:
+            for num, child in enumerate(element.children, element.start):
+                with self.container(f"{num}. ", " " * (len(str(num)) + 2)):
+                    result.append(self.render(child))
+        else:
+            for child in element.children:
+                with self.container(f"{element.bullet} ", "  "):
+                    result.append(self.render(child))
+        self._prefix = self._second_prefix
+        for num, item in enumerate(result):
+            no_new_line = False
+            lines = item.split("\n")
+            for i, line in enumerate(lines):
+                if len(lines) <= 2:
+                    no_new_line = True
+                if line.strip() == "":
+                    lines[i] = ""
+            if no_new_line:
+                result[num] = "\n".join(lines)
+            else:
+                result[num] = "\n".join(lines) +"\n"
+
+        return "".join(result)
+
+    def render_html_block(self, element: block.HTMLBlock) -> str:
+        children = element.children
+        raw_type = 'comments'
+        foliant_obj = self.foliant_obj
+        run_escapecode = self._check_options(raw_type, foliant_obj.options.get('actions', []))
+        exclude = False
+        pattern = foliant_obj.options.get('pattern_override').get(raw_type, '')
+        if element.id == 2 and run_escapecode:
+            if pattern: exclude = re.compile(pattern).search(children)
+            if exclude or re.search(r'<escaped*></escaped>', children):
+                children = children
+            else:
+                children = foliant_obj.escape_for_raw_type(children, raw_type)
+        result = self._prefix + children + "\n"
+        self._prefix = self._second_prefix
+        return result
