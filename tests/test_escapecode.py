@@ -84,6 +84,16 @@ class TestEscapecode(TestCase):
             }
         )
 
+    def test_normalize(self):
+        self.ptf.test_preprocessor(
+            input_mapping = {
+                'index.md': '# Test\n\n## Inline code\n\nLorem ipsum\ufeff sit amet,\r\n consectetur\r adipisicing\t elit\n    \n'
+            },
+            expected_mapping = {
+                'index.md': '# Test\n\n## Inline code\n\nLorem ipsum\u2060 sit amet,\nconsectetur\nadipisicing     elit\n\n'
+            }
+        )
+
     def test_tags(self):
         self.ptf.options =  {
             'cache_dir': Path('.escapecodecache'),
