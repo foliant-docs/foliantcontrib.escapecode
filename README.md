@@ -119,6 +119,8 @@ actions:
             - plantuml
             - seqdiag
         - comments
+    - pattern_override:
+        inline_code: '\<pattern_override_inline_code_\d+\>'
 ```
 
 Meanings of parameters:
@@ -130,6 +132,10 @@ Meanings of parameters:
     * `inline_code`—inline code;
     * `comments`—HTML-style comments, also usual for Markdown;
     * `tags`—content of certain tags with the tags themselves, for example `plantuml` for `<plantuml>...</plantuml>`.
+* `pattern_override`—a regular expression that will not be escaped:
+    * `pre_blocks`—the lines of the pre code block containing this template will not be escaped;
+    * `inline_code`—pattern for inline code;
+    * `comments`—pattern for HTML-style comments, also usual for Markdown.
 
 ## Usage
 
@@ -137,7 +143,7 @@ Below you can see an example of Markdown content with code blocks and inline cod
 
     # Heading
 
-    Text that contains some `inline code`.
+    Text that contains some `inline code`. Text containing `<pattern_override_inline_code_01>`.
 
     Below is a fence code block, language is optional:
 
@@ -153,6 +159,16 @@ Below you can see an example of Markdown content with code blocks and inline cod
     print('Hello World')
     ~~~
 
+    One more fence code block in list:
+
+    - first list item
+
+      ```python
+      import this
+      ```
+
+    - second list item
+
     And this is a pre code block:
 
         mov dx, hello;
@@ -163,7 +179,7 @@ The preprocessor EscapeCode with default behavior will do the following replacem
 
     # Heading
 
-    Text that contains some <escaped hash="2bb20aeb00314e915ecfefd86d26f46a"></escaped>.
+    Text that contains some <escaped hash="2bb20aeb00314e915ecfefd86d26f46a"></escaped>. Text containing `<pattern_override_inline_code_01>`.
 
     Below is a fence code block, language is optional:
 
@@ -172,6 +188,14 @@ The preprocessor EscapeCode with default behavior will do the following replacem
     One more fence code block:
 
     <escaped hash="91c3d3da865e24c33c4b366760c99579"></escaped>
+
+    One more fence code block in list:
+
+    - first list item
+
+      <escaped hash="15e1e46a75ef29eb760f392bb2df4ebb"></escaped>
+
+    - second list item
 
     And this is a pre code block:
 
