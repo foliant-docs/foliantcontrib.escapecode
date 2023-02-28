@@ -74,11 +74,6 @@ class HTMLBlock(block.HTMLBlock):
             cls._end_cond = None
             cls.id = 7
             return 7
-        # for tag in tags:
-        #     if source.expect_re(rf"\<{tag}\>"):
-        #         cls._end_cond = rf"\<\/{tag}\>"
-        #         cls.id = 8
-        #         return 8
 
         return False
 
@@ -269,7 +264,6 @@ class Preprocessor(BasePreprocessor):
 
         :returns: MD5 hash of raw content
         '''
-
         content_to_save_hash = f'{md5(content_to_save.encode()).hexdigest()}'
 
         self.logger.debug(f'Hash of raw content part to save: {content_to_save_hash}')
@@ -344,22 +338,53 @@ class Preprocessor(BasePreprocessor):
 
         :returns: Markdown content with replaced raw parts of certain types
         '''
-        def _sub(content_to_save):
+        def _sub(match):
             self.logger.debug(f'Found tag to escape: {tag}')
 
+            content_to_save = match.group(0)
             content_to_save_hash = self._save_raw_content(content_to_save)
 
             return f'<escaped hash="{content_to_save_hash}"></escaped>'
 
-        raw_type = 'inline_code'
         tag_pattern = re.compile(
-            rf'(?<!\<)\<(?P<tag>{re.escape(tag, raw_type)})' +
+            rf'(?<!\<)\<(?P<tag>{re.escape(tag)})' +
             r'(?:\s[^\<\>]*)?\>.*?\<\/(?P=tag)\>',
             flags=re.DOTALL
         )
+
         return tag_pattern.sub(_sub, markdown_content)
 
     def escape(self, markdown_content: str) -> str:
+        '''Preparing to use parsing and rendering with Marko.
+
+        :param markdown_content: Markdown content
+
+        :returns: Markdown content with replaced raw parts
+        '''
+
+        # exclude admonitions syntax:
+        self.pre_blocks_pattern = r'(\={3}|\!{3}|\?{3}|\?{3}\+)\s((\w+)(?: +\"(.*)\")|\"(.*)\")'
+
+        md = marko.Markdown(renderer=MarkdownRenderer)
+
+        self.content = md.parse(markdown_content)
+
+        markdown_content = md.render(self)
+
+        for action in self.options.get('actions', []):
+            if type(action) is dict:
+                for raw_type in action.get('escape'):
+                    if type(raw_type) is dict:
+                        for tag in raw_type['tags']:
+                            self.logger.debug(
+                                f'Escaping content parts enclosed in the tag: <{tag}> ' +
+                                '(detection patterns may not overlap)'
+                            )
+                            markdown_content = self._escape_tag(markdown_content, tag)
+
+        return markdown_content
+
+    def escape_for_raw_type(self, markdown_content: str, raw_type: str) -> str:
         '''Perform normalization. Replace the parts of Markdown content
         that should not be processed by following preprocessors
         with the ``<escaped>...</escaped>`` pseudo-XML tags.
@@ -369,18 +394,6 @@ class Preprocessor(BasePreprocessor):
 
         :returns: Markdown content with replaced raw parts
         '''
-
-        self.pre_blocks_pattern = r'(\={3}|\!{3}|\?{3}|\?{3}\+)\s((\w+)(?: +\"(.*)\")|\"(.*)\")' # exclude admonitions syntax
-
-        md = marko.Markdown(renderer=MarkdownRenderer)
-
-        self.content = md.parse(markdown_content)
-
-        markdown_content = md.render(self)
-
-        return markdown_content
-
-    def escape_for_raw_type(self, markdown_content: str, raw_type) -> str:
 
         for action in self.options.get('actions', []):
             if action == 'normalize':
@@ -402,18 +415,6 @@ class Preprocessor(BasePreprocessor):
                     self.logger.debug(f'Escaping {raw_type} (detection patterns may not overlap)')
 
                     markdown_content = self._escape_not_overlapping(markdown_content, raw_type)
-
-                elif type(raw_type) is dict:
-                    for tag in raw_type['tags']:
-                        self.logger.debug(
-                            f'Escaping content parts enclosed in the tag: <{tag}> ' +
-                            '(detection patterns may not overlap)'
-                    )
-
-                    markdown_content = self._escape_tag(markdown_content, tag)
-
-                else:
-                    self.logger.debug(f'Unknown raw content type: {raw_type}')
 
             else:
                 self.logger.debug(f'Unknown action: {action}')

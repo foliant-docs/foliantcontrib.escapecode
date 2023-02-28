@@ -66,6 +66,34 @@ class TestUnescapecode(TestCase):
             }
         )
 
+    def test_tags(self):
+        self.ptf.options =  {
+            'cache_dir': Path('.escapecodecache'),
+            'actions': [
+                'normalize',
+                {
+                    'escape': [
+                        {
+                            'tags': [
+                                'plantuml',
+                                'seqdiag'
+                            ]
+                        }
+                    ]
+                }
+            ],
+        }
+        content = data_file_content(os.path.join('data', 'expected', 'tags.md'))
+        content_with_hash = data_file_content(os.path.join('data', 'input', 'tags.md'))
+        self.ptf.test_preprocessor(
+            input_mapping = {
+                'index.md': content
+            },
+            expected_mapping = {
+                'index.md': content_with_hash
+            }
+        )
+
     def test_pattern_override(self):
         content = data_file_content(os.path.join('data', 'expected', 'pattern_override.md'))
         content_with_hash = data_file_content(os.path.join('data', 'input', 'pattern_override.md'))
