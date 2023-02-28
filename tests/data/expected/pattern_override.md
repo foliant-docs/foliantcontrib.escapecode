@@ -9,30 +9,6 @@ consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse
 cillum dolore eu fugiat nulla `<escaped hash="9aa1e24ead885028f329faa242d69012"></escaped>` pariatur. Excepteur sint occaecat cupidatat non
 proident, sunt in culpa qui officia `<pattern_override_inline_code_01>` deserunt mollit anim id est laborum.
 
-## Fence block code
-
-<escaped hash="12d207540fa782c1bf7fe778518dfafc"></escaped>
-<escaped hash="5b582c260cf8b5f8191dd2a52a7da3f9"></escaped>
-<escaped hash="63a83f8381dd0dff19ec253e901ec1ff"></escaped>
-<escaped hash="85d8070d4dc1ab08b11eec528db30e71"></escaped>
-<escaped hash="f58be556b9d2ea073dc499ce7d3fec71"></escaped>
-<escaped hash="930921cb2575e9808e60aa5ef433e8a3"></escaped>
-
-<escaped hash="dfb67235db698b2f5e5cc7d4cb8b7631"></escaped>
-<escaped hash="6abc38a47562f0bcf22f3bfd61a20e70"></escaped>
-<escaped hash="3022884942eb05fa4b5034a8cf9a1fdd"></escaped>
-
-<escaped hash="12d207540fa782c1bf7fe778518dfafc"></escaped>
-def pattern_override_fence_block_code_02(max):
-<escaped hash="63a83f8381dd0dff19ec253e901ec1ff"></escaped>
-<escaped hash="85d8070d4dc1ab08b11eec528db30e71"></escaped>
-<escaped hash="f58be556b9d2ea073dc499ce7d3fec71"></escaped>
-<escaped hash="930921cb2575e9808e60aa5ef433e8a3"></escaped>
-
-<escaped hash="dfb67235db698b2f5e5cc7d4cb8b7631"></escaped>
-<escaped hash="6abc38a47562f0bcf22f3bfd61a20e70"></escaped>
-<escaped hash="3022884942eb05fa4b5034a8cf9a1fdd"></escaped>
-
 ## Pre block code
 
     <escaped hash="5b582c260cf8b5f8191dd2a52a7da3f9"></escaped>

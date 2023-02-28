@@ -74,6 +74,11 @@ class HTMLBlock(block.HTMLBlock):
             cls._end_cond = None
             cls.id = 7
             return 7
+        # for tag in tags:
+        #     if source.expect_re(rf"\<{tag}\>"):
+        #         cls._end_cond = rf"\<\/{tag}\>"
+        #         cls.id = 8
+        #         return 8
 
         return False
 
@@ -123,28 +128,25 @@ class MarkdownRenderer(MarkdownRenderer):
     def render_fenced_code(self, element: block.FencedCode) -> str:
         foliant_obj = self.foliant_obj
         raw_type = 'fence_blocks'
-        exclude = False
         run_escapecode = self._check_options(raw_type, foliant_obj.options.get('actions', []))
-        pattern = foliant_obj.options.get('pattern_override').get(raw_type, '')
         extra = f" {element.extra}" if element.extra else ""
-        first_line = self._prefix + f"```{element.lang}{extra}"
+        first_line = f"```{element.lang}{extra}"
         if run_escapecode:
             first_line = foliant_obj.escape_for_raw_type(first_line, raw_type)
         lines = [first_line]
         for line in self.render_children(element).splitlines():
-            if run_escapecode:
-                if pattern: exclude = re.compile(pattern).search(line)
-                if not (exclude or re.search(r'<escaped*></escaped>', line)):
-                    line = foliant_obj.escape_for_raw_type(line, raw_type)
             if line.strip() != "":
                 lines.append(self._second_prefix + line)
             else:
                 lines.append(line)
         last_line = self._second_prefix + "```"
-        if run_escapecode: last_line = foliant_obj.escape_for_raw_type(last_line, raw_type)
         lines.append(last_line)
+        block = "\n".join(lines)
+        if run_escapecode:
+            if not re.search(r'<escaped*></escaped>', line):
+                block = foliant_obj.escape_for_raw_type(block, raw_type)
         self._prefix = self._second_prefix
-        return "\n".join(lines) + "\n"
+        return self._prefix + block + "\n"
 
     def render_code_span(self, element: inline.CodeSpan) -> str:
         text = element.children
@@ -225,11 +227,6 @@ class Preprocessor(BasePreprocessor):
                 ]
             }
         ],
-        'pattern_override': {
-            'inline_code': '',
-            'pre_block': '',
-            'fence_block': ''
-        }
     }
 
     def __init__(self, *args, **kwargs):

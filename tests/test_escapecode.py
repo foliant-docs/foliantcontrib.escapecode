@@ -32,7 +32,6 @@ class TestEscapecode(TestCase):
             'pattern_override': {
                 'inline_code': '',
                 'pre_blocks': '',
-                'fence_blocks': '',
                 'comments': ''
             }
         }
@@ -102,7 +101,6 @@ class TestEscapecode(TestCase):
             'pattern_override': {
                 'inline_code': '\<pattern_override_inline_code_\d+\>',
                 'pre_blocks': 'pattern_override_pre_block_code_\d+',
-                'fence_blocks': 'pattern_override_fence_block_code_\d+',
                 'comments': 'pattern_override_comments-\d+'
             }
         }
