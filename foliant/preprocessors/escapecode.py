@@ -5,15 +5,16 @@ that should not be processed by any preprocessors.
 '''
 
 import re
-import marko
+
 from pathlib import Path
 from hashlib import md5
-
 from foliant.preprocessors.base import BasePreprocessor
+
+import marko
+
 from marko.md_renderer import MarkdownRenderer
-from marko import *
+from marko import Markdown, inline
 import marko.block as block
-import marko.inline as inline
 
 
 class foliantMarkdown(Markdown):
@@ -32,82 +33,97 @@ marko.Markdown = foliantMarkdown
 
 
 class MarkdownRenderer(MarkdownRenderer):
-
     def render_setext_heading(self, element: block.SetextHeading) -> str:
-        return self.render_children(element)
+        result = self._prefix + self.render_children(element)
+        self._prefix = self._second_prefix
+        return result
 
     def render_code_block(self, element: block.CodeBlock) -> str:
-        indent = " " * 4
+        indent = " " * 4; raw_type = 'pre_blocks'
+        exclude, run_escapecode = False, False
         lines = self.render_children(element).splitlines()
         foliant_obj = self.foliant_obj
-        raw_type = 'pre_blocks'
-        exclude = False
-        for k, v in foliant_obj.options.get('pattern_override').items():
-            if k == raw_type: exclude = re.compile(v)
+        pattern = foliant_obj.options.get('pattern_override').get(raw_type, '')
         for action in foliant_obj.options.get('actions', []):
             if type(action) is not str:
                 for escape_action in action['escape']:
-                    if escape_action == 'pre_blocks':
-                        for i, line in enumerate(lines):
-                            if exclude: exclude = re.search(exclude, line)
-                            if exclude or re.search(r'<escaped*></escaped>', line):
-                                lines[i] = indent + line
-                            else:
-                                del_indent = 0
+                    if escape_action == raw_type:
+                        run_escapecode =True
+        if run_escapecode:
+            for action in foliant_obj.options.get('actions', []):
+                if type(action) is not str:
+                    for escape_action in action['escape']:
+                        if escape_action == 'pre_blocks':
+                            if re.search(foliant_obj.pre_blocks_pattern, lines[0]): run_escapecode = False
+                            for i, line in enumerate(lines):
+                                indent = " " * 4
                                 if line.startswith(" "):
-                                    indent_size = len(re.search(r"^ +", line).group(0))
-                                    if indent_size < 4: del_indent = indent_size
-                                    else: del_indent = 4
-                                lines[i] = indent + foliant_obj.escape_for_raw_type(line[del_indent:], raw_type)
-        lines = [self._prefix + lines[0]] + [
-            self._second_prefix + line for line in lines[1:]
+                                    indent = " " * (4 + len(re.search(r'^ +', line).group(0)))
+                                if pattern: exclude = re.compile(pattern).search(line)
+                                if exclude or re.search(r'\s<escaped*></escaped>', line) or re.search(foliant_obj.pre_blocks_pattern, line):
+                                    lines[i] = indent + line.strip()
+                                elif line.strip() == "":
+                                    lines[i] = line.strip()
+                                else:
+                                    lines[i] = indent + foliant_obj.escape_for_raw_type(line.strip(), raw_type)
+            indent = ''
+        lines = [self._prefix + indent + lines[0]] + [
+            self._second_prefix + indent + line for line in lines[1:]
         ]
         self._prefix = self._second_prefix
         return "\n".join(lines) + "\n"
 
     def render_fenced_code(self, element: block.FencedCode) -> str:
-        extra = f" {element.extra}" if element.extra else ""
-        lines = [self._prefix + f"```{element.lang}{extra}"]
-        lines.extend(
-            self._second_prefix + line
-            for line in self.render_children(element).splitlines()
-        )
-        lines.append(self._second_prefix + "```")
-        self._prefix = self._second_prefix
-
         foliant_obj = self.foliant_obj
         raw_type = 'fence_blocks'
-        exclude = False
-        for k, v in foliant_obj.options.get('pattern_override').items():
-            if k == raw_type: exclude = re.compile(v)
+        exclude, run_escapecode = False, False
+        pattern = foliant_obj.options.get('pattern_override').get(raw_type, '')
         for action in foliant_obj.options.get('actions', []):
             if type(action) is not str:
                 for escape_action in action['escape']:
-                    if escape_action == 'fence_blocks':
-                        for i, line in enumerate(lines):
-                            if exclude: exclude = re.search(exclude, line)
-                            if exclude or re.search(r'<escaped*></escaped>', line):
-                                lines[i] = line
-                            else:
-                                lines[i] = foliant_obj.escape_for_raw_type(line, raw_type)
+                    if escape_action == raw_type:
+                        run_escapecode =True
+        extra = f" {element.extra}" if element.extra else ""
+        first_line = self._prefix + f"```{element.lang}{extra}"
+        if run_escapecode:
+            first_line = foliant_obj.escape_for_raw_type(first_line, raw_type)
+        lines = [first_line]
+        for line in self.render_children(element).splitlines():
+            if run_escapecode:
+                if pattern: exclude = re.compile(pattern).search(line)
+                if not (exclude or re.search(r'<escaped*></escaped>', line)):
+                    line = foliant_obj.escape_for_raw_type(line, raw_type)
+            if line.strip() != "":
+                lines.append(self._second_prefix + line)
+            else:
+                lines.append(line)
+        last_line = self._second_prefix + "```"
+        if run_escapecode: last_line = foliant_obj.escape_for_raw_type(last_line, raw_type)
+        lines.append(last_line)
+        self._prefix = self._second_prefix
         return "\n".join(lines) + "\n"
 
     def render_code_span(self, element: inline.CodeSpan) -> str:
         text = element.children
         foliant_obj = self.foliant_obj
         raw_type = 'inline_code'
-        exclude = False
-        for k, v in foliant_obj.options.get('pattern_override').items():
-            if k == raw_type: exclude = re.compile(v)
+        exclude, run_escapecode = False, False
+        pattern = foliant_obj.options.get('pattern_override').get(raw_type, '')
         for action in foliant_obj.options.get('actions', []):
             if type(action) is not str:
                 for escape_action in action['escape']:
                     if escape_action == raw_type:
-                        if exclude: exclude = re.search(exclude, text)
-                        if exclude or re.search(r'<escaped*></escaped>', text):
-                            text = text
-                        else:
-                            text = foliant_obj.escape_for_raw_type(text, raw_type)
+                        run_escapecode =True
+        if run_escapecode:
+            for action in foliant_obj.options.get('actions', []):
+                if type(action) is not str:
+                    for escape_action in action['escape']:
+                        if escape_action == raw_type:
+                            if pattern: exclude = re.compile(pattern).search(text)
+                            if exclude or re.search(r'<escaped*></escaped>', text):
+                                text = text
+                            else:
+                                text = foliant_obj.escape_for_raw_type(text, raw_type)
         if text and text[0] == "`" or text[-1] == "`":
             return f"`` {text} ``"
         return f"`{text}`"
@@ -116,6 +132,32 @@ class MarkdownRenderer(MarkdownRenderer):
         result = self._prefix + "---\n"
         self._prefix = self._second_prefix
         return result
+
+    def render_list(self, element: block.List) -> str:
+        result = []
+        if element.ordered:
+            for num, child in enumerate(element.children, element.start):
+                with self.container(f"{num}. ", " " * (len(str(num)) + 2)):
+                    result.append(self.render(child))
+        else:
+            for child in element.children:
+                with self.container(f"{element.bullet} ", "  "):
+                    result.append(self.render(child))
+        self._prefix = self._second_prefix
+        for num, item in enumerate(result):
+            no_new_line = False
+            lines = item.split("\n")
+            for i, line in enumerate(lines):
+                if len(lines) <= 2:
+                    no_new_line = True
+                if line.strip() == "":
+                    lines[i] = ""
+            if no_new_line:
+                result[num] = "\n".join(lines)
+            else:
+                result[num] = "\n".join(lines) +"\n"
+
+        return "".join(result)
 
 
 class Preprocessor(BasePreprocessor):
@@ -128,18 +170,13 @@ class Preprocessor(BasePreprocessor):
                     'fence_blocks',
                     'pre_blocks',
                     'inline_code',
-                    {
-                        'tags': [
-                            'plantuml',
-                            'seqdiag'
-                        ]
-                    }
                 ]
             }
         ],
         'pattern_override': {
-            'inline_code': '(`(?!(JIRA|My-API:))[^`\n]*`)',
-            'pre_block': '\={3}\s\"|\!{3}\s[A-z]+|\?{3}\+\s[A-z]+|\?{3}\s[A-z]+'
+            'inline_code': '',
+            'pre_block': '',
+            'fence_block': ''
         }
     }
 
@@ -149,16 +186,7 @@ class Preprocessor(BasePreprocessor):
         self._cache_dir_path = (self.project_path / self.options['cache_dir']).resolve()
 
         self.logger = self.logger.getChild('escapecode')
-
         self.logger.debug(f'Preprocessor inited: {self.__dict__}')
-        try:
-            exclude_pattern = self.options['pattern_override']
-            self.exclude_pattern = re.compile(
-                exclude_pattern
-            )
-            self.logger.debug(f"inline_code replaced by {exclude_pattern}")
-        except:
-            pass
         self.logger.debug(f'Options: {self.options}')
 
     def _normalize(self, markdown_content: str) -> str:
@@ -227,7 +255,7 @@ class Preprocessor(BasePreprocessor):
                 content_to_save = markdown_content
 
             elif raw_type == 'pre_blocks':
-                after = '\n'
+                after = ''
                 content_to_save = markdown_content
 
             content_to_save_hash = self._save_raw_content(content_to_save)
@@ -248,7 +276,6 @@ class Preprocessor(BasePreprocessor):
         self.logger.debug(f'Found raw content part, type: {raw_type}')
 
         content_to_save = markdown_content
-        print(repr(content_to_save))
         content_to_save_hash = self._save_raw_content(content_to_save)
 
         markdown_content = f'<escaped hash="{content_to_save_hash}"></escaped>'
@@ -279,7 +306,6 @@ class Preprocessor(BasePreprocessor):
             r'(?:\s[^\<\>]*)?\>.*?\<\/(?P=tag)\>',
             flags=re.DOTALL
         )
-
         return tag_pattern.sub(_sub, markdown_content)
 
     def escape(self, markdown_content: str ) -> str:
@@ -293,9 +319,10 @@ class Preprocessor(BasePreprocessor):
         :returns: Markdown content with replaced raw parts
         '''
 
+        self.pre_blocks_pattern = r'(\={3}|\!{3}|\?{3}|\?{3}\+)\s((\w+)(?: +\"(.*)\")|\"(.*)\")' # exclude admonitions syntax
+
         md = marko.Markdown(renderer=MarkdownRenderer)
         self.content = md.parse(markdown_content)
-
         markdown_content = md.render(self)
         return markdown_content
 
@@ -309,12 +336,13 @@ class Preprocessor(BasePreprocessor):
 
             elif action.get('escape', []):
                 self.logger.debug('Escaping raw parts in the source content')
-                print(raw_type)
                 # for raw_type in action['escape']:
                 if raw_type == 'fence_blocks' or raw_type == 'pre_blocks':
                     self.logger.debug(f'Escaping {raw_type} (detection patterns may overlap)')
 
                     markdown_content = self._escape_overlapping(markdown_content, raw_type)
+                    if raw_type == 'pre_blocks':
+                        markdown_content = markdown_content.replace("\n", '')
 
                 elif raw_type == 'inline_code' or raw_type == 'comments':
                     self.logger.debug(f'Escaping {raw_type} (detection patterns may not overlap)')
