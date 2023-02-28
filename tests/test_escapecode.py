@@ -16,6 +16,26 @@ class TestEscapecode(TestCase):
     def setUp(self):
         self.ptf = PreprocessorTestFramework('escapecode')
         self.ptf.context['project_path'] = Path('.')
+        self.ptf.options =  {
+            'cache_dir': Path('.escapecodecache'),
+            'actions': [
+                'normalize',
+                {
+                    'escape': [
+                        'fence_blocks',
+                        'pre_blocks',
+                        'inline_code',
+                        'comments'
+                    ]
+                }
+            ],
+            'pattern_override': {
+                'inline_code': '',
+                'pre_blocks': '',
+                'fence_blocks': '',
+                'comments': ''
+            }
+        }
 
     def test_pre_blocks(self):
         content = data_file_content(os.path.join('data', 'input', 'pre_blocks.md'))
@@ -44,6 +64,50 @@ class TestEscapecode(TestCase):
     def test_inline_code(self):
         content = data_file_content(os.path.join('data', 'input', 'inline_code.md'))
         content_with_hash = data_file_content(os.path.join('data', 'expected', 'inline_code.md'))
+        self.ptf.test_preprocessor(
+            input_mapping = {
+                'index.md': content
+            },
+            expected_mapping = {
+                'index.md': content_with_hash
+            }
+        )
+
+    def test_comments(self):
+        content = data_file_content(os.path.join('data', 'input', 'comments.md'))
+        content_with_hash = data_file_content(os.path.join('data', 'expected', 'comments.md'))
+        self.ptf.test_preprocessor(
+            input_mapping = {
+                'index.md': content
+            },
+            expected_mapping = {
+                'index.md': content_with_hash
+            }
+        )
+
+    def test_pattern_override(self):
+        self.ptf.options =  {
+            'cache_dir': Path('.escapecodecache'),
+            'actions': [
+                'normalize',
+                {
+                    'escape': [
+                        'fence_blocks',
+                        'pre_blocks',
+                        'inline_code',
+                        'comments'
+                    ]
+                }
+            ],
+            'pattern_override': {
+                'inline_code': '\<pattern_override_inline_code_\d+\>',
+                'pre_blocks': 'pattern_override_pre_block_code_\d+',
+                'fence_blocks': 'pattern_override_fence_block_code_\d+',
+                'comments': 'pattern_override_comments-\d+'
+            }
+        }
+        content = data_file_content(os.path.join('data', 'input', 'pattern_override.md'))
+        content_with_hash = data_file_content(os.path.join('data', 'expected', 'pattern_override.md'))
         self.ptf.test_preprocessor(
             input_mapping = {
                 'index.md': content

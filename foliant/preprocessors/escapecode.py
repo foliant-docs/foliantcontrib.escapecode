@@ -5,16 +5,17 @@ that should not be processed by any preprocessors.
 '''
 
 import re
-
 from pathlib import Path
 from hashlib import md5
+
 from foliant.preprocessors.base import BasePreprocessor
 
 import marko
-
-from marko.md_renderer import MarkdownRenderer
-from marko import Markdown, inline
 import marko.block as block
+
+from marko import Markdown, inline, patterns
+from marko.helpers import Source
+from marko.md_renderer import MarkdownRenderer
 
 
 class foliantMarkdown(Markdown):
@@ -32,40 +33,86 @@ class foliantMarkdown(Markdown):
 marko.Markdown = foliantMarkdown
 
 
+class HTMLBlock(block.HTMLBlock):
+
+    def __init__(self, lines: str) -> None:
+        self.children = lines
+        self.id = self.id
+
+    @classmethod
+    def match(cls, source: Source) -> int or bool:
+        if source.expect_re(r"(?i) {,3}<(script|pre|style|textarea)[>\s]"):
+            assert source.match
+            cls._end_cond = re.compile(rf"(?i)</{source.match.group(1)}>")
+            cls.id = 1
+            return 1
+        if source.expect_re(r" {,3}<!--"):
+            cls._end_cond = re.compile(r"-->")
+            cls.id = 2
+            return 2
+        if source.expect_re(r" {,3}<\?"):
+            cls._end_cond = re.compile(r"\?>")
+            cls.id = 3
+            return 3
+        if source.expect_re(r" {,3}<!"):
+            cls._end_cond = re.compile(r">")
+            cls.id = 4
+            return 4
+        if source.expect_re(r" {,3}<!\[CDATA\["):
+            cls._end_cond = re.compile(r"\]\]>")
+            cls.id = 5
+            return 5
+        block_tag = r"(?:{})".format("|".join(patterns.tags))
+        if source.expect_re(r"(?im) {,3}</?%s(?: +|/?>|$)" % block_tag):
+            cls._end_cond = None
+            cls.id = 6
+            return 6
+        if source.expect_re(
+            r"(?m) {,3}(<%(tag)s(?:%(attr)s)*[^\n\S]*/?>|</%(tag)s[^\n\S]*>)[^\n\S]*$"
+            % {"tag": patterns.tag_name, "attr": patterns.attribute_no_lf}
+        ):
+            cls._end_cond = None
+            cls.id = 7
+            return 7
+
+        return False
+
+block.HTMLBlock = HTMLBlock
+
 class MarkdownRenderer(MarkdownRenderer):
+    def _check_options(self, raw_type: str, actions) -> bool:
+        for action in actions:
+            if type(action) == dict:
+                for escape_action in action['escape']:
+                    if escape_action == raw_type:
+                        return True
+        return False
+
     def render_setext_heading(self, element: block.SetextHeading) -> str:
         result = self._prefix + self.render_children(element)
         self._prefix = self._second_prefix
         return result
 
     def render_code_block(self, element: block.CodeBlock) -> str:
-        indent = " " * 4; raw_type = 'pre_blocks'
-        exclude, run_escapecode = False, False
-        lines = self.render_children(element).splitlines()
         foliant_obj = self.foliant_obj
+        indent = " " * 4; raw_type = 'pre_blocks'
+        exclude = False
+        run_escapecode = self._check_options(raw_type, foliant_obj.options.get('actions', []))
+        lines = self.render_children(element).splitlines()
         pattern = foliant_obj.options.get('pattern_override').get(raw_type, '')
-        for action in foliant_obj.options.get('actions', []):
-            if type(action) is not str:
-                for escape_action in action['escape']:
-                    if escape_action == raw_type:
-                        run_escapecode =True
         if run_escapecode:
-            for action in foliant_obj.options.get('actions', []):
-                if type(action) is not str:
-                    for escape_action in action['escape']:
-                        if escape_action == 'pre_blocks':
-                            if re.search(foliant_obj.pre_blocks_pattern, lines[0]): run_escapecode = False
-                            for i, line in enumerate(lines):
-                                indent = " " * 4
-                                if line.startswith(" "):
-                                    indent = " " * (4 + len(re.search(r'^ +', line).group(0)))
-                                if pattern: exclude = re.compile(pattern).search(line)
-                                if exclude or re.search(r'\s<escaped*></escaped>', line) or re.search(foliant_obj.pre_blocks_pattern, line):
-                                    lines[i] = indent + line.strip()
-                                elif line.strip() == "":
-                                    lines[i] = line.strip()
-                                else:
-                                    lines[i] = indent + foliant_obj.escape_for_raw_type(line.strip(), raw_type)
+            if re.search(foliant_obj.pre_blocks_pattern, lines[0]): run_escapecode = False
+            for i, line in enumerate(lines):
+                indent = " " * 4
+                if line.startswith(" "):
+                    indent = " " * (4 + len(re.search(r'^ +', line).group(0)))
+                if pattern: exclude = re.compile(pattern).search(line)
+                if exclude or re.search(r'\s<escaped*></escaped>', line) or re.search(foliant_obj.pre_blocks_pattern, line):
+                    lines[i] = indent + line.strip()
+                elif line.strip() == "":
+                    lines[i] = line.strip()
+                else:
+                    lines[i] = indent + foliant_obj.escape_for_raw_type(line.strip(), raw_type)
             indent = ''
         lines = [self._prefix + indent + lines[0]] + [
             self._second_prefix + indent + line for line in lines[1:]
@@ -76,13 +123,9 @@ class MarkdownRenderer(MarkdownRenderer):
     def render_fenced_code(self, element: block.FencedCode) -> str:
         foliant_obj = self.foliant_obj
         raw_type = 'fence_blocks'
-        exclude, run_escapecode = False, False
+        exclude = False
+        run_escapecode = self._check_options(raw_type, foliant_obj.options.get('actions', []))
         pattern = foliant_obj.options.get('pattern_override').get(raw_type, '')
-        for action in foliant_obj.options.get('actions', []):
-            if type(action) is not str:
-                for escape_action in action['escape']:
-                    if escape_action == raw_type:
-                        run_escapecode =True
         extra = f" {element.extra}" if element.extra else ""
         first_line = self._prefix + f"```{element.lang}{extra}"
         if run_escapecode:
@@ -107,23 +150,15 @@ class MarkdownRenderer(MarkdownRenderer):
         text = element.children
         foliant_obj = self.foliant_obj
         raw_type = 'inline_code'
-        exclude, run_escapecode = False, False
+        exclude = False
+        run_escapecode = self._check_options(raw_type, foliant_obj.options.get('actions', []))
         pattern = foliant_obj.options.get('pattern_override').get(raw_type, '')
-        for action in foliant_obj.options.get('actions', []):
-            if type(action) is not str:
-                for escape_action in action['escape']:
-                    if escape_action == raw_type:
-                        run_escapecode =True
         if run_escapecode:
-            for action in foliant_obj.options.get('actions', []):
-                if type(action) is not str:
-                    for escape_action in action['escape']:
-                        if escape_action == raw_type:
-                            if pattern: exclude = re.compile(pattern).search(text)
-                            if exclude or re.search(r'<escaped*></escaped>', text):
-                                text = text
-                            else:
-                                text = foliant_obj.escape_for_raw_type(text, raw_type)
+            if pattern: exclude = re.compile(pattern).search(text)
+            if exclude or re.search(r'<escaped*></escaped>', text):
+                text = text
+            else:
+                text = foliant_obj.escape_for_raw_type(text, raw_type)
         if text and text[0] == "`" or text[-1] == "`":
             return f"`` {text} ``"
         return f"`{text}`"
@@ -159,6 +194,23 @@ class MarkdownRenderer(MarkdownRenderer):
 
         return "".join(result)
 
+    def render_html_block(self, element: block.HTMLBlock) -> str:
+        children = element.children
+        raw_type = 'comments'
+        foliant_obj = self.foliant_obj
+        run_escapecode = self._check_options(raw_type, foliant_obj.options.get('actions', []))
+        exclude = False
+        pattern = foliant_obj.options.get('pattern_override').get(raw_type, '')
+        if element.id == 2 and run_escapecode:
+            if pattern: exclude = re.compile(pattern).search(children)
+            if exclude or re.search(r'<escaped*></escaped>', children):
+                children = children
+            else:
+                children = foliant_obj.escape_for_raw_type(children, raw_type)
+        result = self._prefix + children + "\n"
+        self._prefix = self._second_prefix
+        return result
+
 
 class Preprocessor(BasePreprocessor):
     defaults = {
@@ -186,6 +238,7 @@ class Preprocessor(BasePreprocessor):
         self._cache_dir_path = (self.project_path / self.options['cache_dir']).resolve()
 
         self.logger = self.logger.getChild('escapecode')
+
         self.logger.debug(f'Preprocessor inited: {self.__dict__}')
         self.logger.debug(f'Options: {self.options}')
 
@@ -194,7 +247,9 @@ class Preprocessor(BasePreprocessor):
         further operations: replace ``CRLF`` with ``LF``,
         remove excessive whitespace characters,
         provide trailing newline, etc.
+
         :param markdown_content: Source Markdown content
+
         :returns: Normalized Markdown content
         '''
 
@@ -239,7 +294,7 @@ class Preprocessor(BasePreprocessor):
 
         return content_to_save_hash
 
-    def _escape_overlapping(self, markdown_content: str, raw_type) -> str:
+    def _escape_overlapping(self, markdown_content: str, raw_type: str) -> str:
         '''Replace the parts of raw content with detection patterns that may overlap
         (fence blocks, pre blocks) with the ``<escaped>...</escaped>`` pseudo-XML tags.
 
@@ -267,7 +322,7 @@ class Preprocessor(BasePreprocessor):
 
         return markdown_content
 
-    def _escape_not_overlapping(self, markdown_content: str, raw_type) -> str:
+    def _escape_not_overlapping(self, markdown_content: str, raw_type: str) -> str:
         '''Replace the parts of raw content with detection patterns that may not overlap
         (inline code, HTML-style comments) with the ``<escaped>...</escaped>`` pseudo-XML tags.
         :param content_to_save: Markdown content
@@ -292,10 +347,9 @@ class Preprocessor(BasePreprocessor):
 
         :returns: Markdown content with replaced raw parts of certain types
         '''
-        def _sub(match):
+        def _sub(content_to_save):
             self.logger.debug(f'Found tag to escape: {tag}')
 
-            content_to_save = match
             content_to_save_hash = self._save_raw_content(content_to_save)
 
             return f'<escaped hash="{content_to_save_hash}"></escaped>'
@@ -308,7 +362,7 @@ class Preprocessor(BasePreprocessor):
         )
         return tag_pattern.sub(_sub, markdown_content)
 
-    def escape(self, markdown_content: str ) -> str:
+    def escape(self, markdown_content: str) -> str:
         '''Perform normalization. Replace the parts of Markdown content
         that should not be processed by following preprocessors
         with the ``<escaped>...</escaped>`` pseudo-XML tags.
@@ -322,8 +376,11 @@ class Preprocessor(BasePreprocessor):
         self.pre_blocks_pattern = r'(\={3}|\!{3}|\?{3}|\?{3}\+)\s((\w+)(?: +\"(.*)\")|\"(.*)\")' # exclude admonitions syntax
 
         md = marko.Markdown(renderer=MarkdownRenderer)
+
         self.content = md.parse(markdown_content)
+
         markdown_content = md.render(self)
+
         return markdown_content
 
     def escape_for_raw_type(self, markdown_content: str, raw_type) -> str:
@@ -336,7 +393,7 @@ class Preprocessor(BasePreprocessor):
 
             elif action.get('escape', []):
                 self.logger.debug('Escaping raw parts in the source content')
-                # for raw_type in action['escape']:
+
                 if raw_type == 'fence_blocks' or raw_type == 'pre_blocks':
                     self.logger.debug(f'Escaping {raw_type} (detection patterns may overlap)')
 
