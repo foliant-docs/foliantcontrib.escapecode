@@ -180,16 +180,17 @@ class Preprocessor(BasePreprocessor):
 
         markdown_content = md.render(self)
 
-        for action in self.options.get('actions', []):
-            if type(action) is dict:
-                for raw_type in action.get('escape'):
-                    if type(raw_type) is dict:
-                        for tag in raw_type['tags']:
-                            self.logger.debug(
-                                f'Escaping content parts enclosed in the tag: <{tag}> ' +
-                                '(detection patterns may not overlap)'
-                            )
-                            markdown_content = self._escape_tag(markdown_content, tag)
+        if self.options.get('actions'):
+            for action in self.options.get('actions', []):
+                if type(action) is dict:
+                    for raw_type in action.get('escape', []):
+                        if type(raw_type) is dict:
+                            for tag in raw_type['tags']:
+                                self.logger.debug(
+                                    f'Escaping content parts enclosed in the tag: <{tag}> ' +
+                                    '(detection patterns may not overlap)'
+                                )
+                                markdown_content = self._escape_tag(markdown_content, tag)
 
         return markdown_content
 
@@ -313,11 +314,12 @@ block.HTMLBlock = HTMLBlock
 
 class MarkdownRenderer(MarkdownRenderer):
     def _check_options(self, raw_type: str, actions) -> bool:
-        for action in actions:
-            if type(action) == dict:
-                for escape_action in action['escape']:
-                    if escape_action == raw_type:
-                        return True
+        if actions:
+            for action in actions:
+                if type(action) == dict:
+                    for escape_action in action['escape']:
+                        if escape_action == raw_type:
+                            return True
         return False
 
     def render_setext_heading(self, element: block.SetextHeading) -> str:
@@ -331,7 +333,7 @@ class MarkdownRenderer(MarkdownRenderer):
         exclude = False
         run_escapecode = self._check_options(raw_type, foliant_obj.options.get('actions', []))
         lines = self.render_children(element).splitlines()
-        pattern = foliant_obj.options.get('pattern_override').get(raw_type, '')
+        pattern = foliant_obj.options.get('pattern_override', {}).get(raw_type, '')
         if run_escapecode:
             if re.search(foliant_obj.pre_blocks_pattern, lines[0]): run_escapecode = False
             for i, line in enumerate(lines):
@@ -381,7 +383,7 @@ class MarkdownRenderer(MarkdownRenderer):
         raw_type = 'inline_code'
         exclude = False
         run_escapecode = self._check_options(raw_type, foliant_obj.options.get('actions', []))
-        pattern = foliant_obj.options.get('pattern_override').get(raw_type, '')
+        pattern = foliant_obj.options.get('pattern_override', {}).get(raw_type, '')
         if run_escapecode:
             if pattern: exclude = re.compile(pattern).search(text)
             if exclude or re.search(r'<escaped*></escaped>', text):
@@ -429,7 +431,7 @@ class MarkdownRenderer(MarkdownRenderer):
         foliant_obj = self.foliant_obj
         run_escapecode = self._check_options(raw_type, foliant_obj.options.get('actions', []))
         exclude = False
-        pattern = foliant_obj.options.get('pattern_override').get(raw_type, '')
+        pattern = foliant_obj.options.get('pattern_override', {}).get(raw_type, '')
         if element.id == 2 and run_escapecode:
             if pattern: exclude = re.compile(pattern).search(children)
             if exclude or re.search(r'<escaped*></escaped>', children):
