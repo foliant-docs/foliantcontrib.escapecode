@@ -179,29 +179,29 @@ The preprocessor EscapeCode with default behavior will do the following replacem
 
     # Heading
 
-    Text that contains some <escaped hash="2bb20aeb00314e915ecfefd86d26f46a"></escaped>. Text containing `<pattern_override_inline_code_01>`.
+    Text that contains some <<escaped hash="2bb20aeb00314e915ecfefd86d26f46a"></escaped>. Text containing `<pattern_override_inline_code_01>`.
 
     Below is a fence code block, language is optional:
 
-    <escaped hash="15e1e46a75ef29eb760f392bb2df4ebb"></escaped>
+    <<escaped hash="15e1e46a75ef29eb760f392bb2df4ebb"></escaped>
 
     One more fence code block:
 
-    <escaped hash="91c3d3da865e24c33c4b366760c99579"></escaped>
+    <<escaped hash="91c3d3da865e24c33c4b366760c99579"></escaped>
 
     One more fence code block in list:
 
     - first list item
 
-      <escaped hash="15e1e46a75ef29eb760f392bb2df4ebb"></escaped>
+      <<escaped hash="15e1e46a75ef29eb760f392bb2df4ebb"></escaped>
 
     - second list item
 
     And this is a pre code block:
 
-        <escaped hash="644952599350cd6676697cc95f52b999"></escaped>
-        <escaped hash="e24afa46b55281fcf0b4b0e38d10419c"></escaped>
-        <escaped hash="6bf655ac3a98b481ef3d33ac8dfcd93f"></escaped>
+        <<escaped hash="644952599350cd6676697cc95f52b999"></escaped>
+        <<escaped hash="e24afa46b55281fcf0b4b0e38d10419c"></escaped>
+        <<escaped hash="6bf655ac3a98b481ef3d33ac8dfcd93f"></escaped>
 
 Escaped content parts will be saved into files located in the cache directory. The names of the files correspond the values of the `hash` attributes. For example, that’s the content of the file `15e1e46a75ef29eb760f392bb2df4ebb.md`:
 
