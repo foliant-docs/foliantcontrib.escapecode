@@ -1,3 +1,8 @@
+# 1.0.5
+
+- feat: using Marko parser to identify pre blocks, fence blocks and inline code as well as comments
+- feat: override pattern option in config
+
 # 1.0.4
 
 -   Addition to normalization: remove BOM.
