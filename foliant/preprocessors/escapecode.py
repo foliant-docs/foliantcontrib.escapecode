@@ -1,8 +1,8 @@
-'''
+"""
 Preprocessor for Foliant documentation authoring tool.
 Escapes code blocks, inline code, and other content parts
 that should not be processed by any preprocessors.
-'''
+"""
 
 import re
 from pathlib import Path
@@ -36,6 +36,8 @@ class Preprocessor(BasePreprocessor):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        self.content = None
+        self.pre_blocks_pattern = None
         self._cache_dir_path = (self.project_path / self.options['cache_dir']).resolve()
 
         self.logger = self.logger.getChild('escapecode')
@@ -43,8 +45,9 @@ class Preprocessor(BasePreprocessor):
         self.logger.debug(f'Preprocessor inited: {self.__dict__}')
         self.logger.debug(f'Options: {self.options}')
 
-    def _normalize(self, markdown_content: str) -> str:
-        '''Normalize the source Markdown content to simplify
+    @staticmethod
+    def _normalize(markdown_content: str) -> str:
+        """Normalize the source Markdown content to simplify
         further operations: replace ``CRLF`` with ``LF``,
         remove excessive whitespace characters,
         provide trailing newline, etc.
@@ -52,12 +55,13 @@ class Preprocessor(BasePreprocessor):
         :param markdown_content: Source Markdown content
 
         :returns: Normalized Markdown content
-        '''
+        """
 
         markdown_content = re.sub(r'^\ufeff', '', markdown_content)
         markdown_content = re.sub(r'\ufeff', '\u2060', markdown_content)
         markdown_content = re.sub(r'\r\n', '\n', markdown_content)
         markdown_content = re.sub(r'\r', '\n', markdown_content)
+        # this regex generated excessive newlines with the Marko parser and was commented out.
         # markdown_content = re.sub(r'(?<=\S)$', '\n', markdown_content)
         markdown_content = re.sub(r'\t', '    ', markdown_content)
         markdown_content = re.sub(r'[ \n]+$', '\n', markdown_content)
@@ -66,13 +70,14 @@ class Preprocessor(BasePreprocessor):
         return markdown_content
 
     def _save_raw_content(self, content_to_save: str) -> str:
-        '''Calculate MD5 hash of raw content. Save the content into the file
+        """Calculate MD5 hash of raw content.
+        Save the content into the file
         with the hash in its name.
 
         :param content_to_save: Raw content
 
         :returns: MD5 hash of raw content
-        '''
+        """
         content_to_save_hash = f'{md5(content_to_save.encode()).hexdigest()}'
 
         self.logger.debug(f'Hash of raw content part to save: {content_to_save_hash}')
@@ -95,13 +100,15 @@ class Preprocessor(BasePreprocessor):
         return content_to_save_hash
 
     def _escape_overlapping(self, markdown_content: str, raw_type: str) -> str:
-        '''Replace the parts of raw content with detection patterns that may overlap
+        """Replace the parts of raw content with detection patterns that may overlap
         (fence blocks, pre blocks) with the ``<escaped>...</escaped>`` pseudo-XML tags.
 
-        :param content_to_save: Markdown content
+        :param markdown_content: Markdown content
+        :param raw_type
 
         :returns: Markdown content with replaced raw parts of certain types
-        '''
+        """
+        content_to_save, after = "", ""
         if markdown_content:
             self.logger.debug(f'Found raw content part, type: {raw_type}')
 
@@ -123,11 +130,12 @@ class Preprocessor(BasePreprocessor):
         return markdown_content
 
     def _escape_not_overlapping(self, markdown_content: str, raw_type: str) -> str:
-        '''Replace the parts of raw content with detection patterns that may not overlap
+        """Replace the parts of raw content with detection patterns that may not overlap
         (inline code, HTML-style comments) with the ``<escaped>...</escaped>`` pseudo-XML tags.
-        :param content_to_save: Markdown content
+        :param markdown_content: Markdown content
+        :param raw_type
         :returns: Markdown content with replaced raw parts of certain types
-        '''
+        """
         self.logger.debug(f'Found raw content part, type: {raw_type}')
 
         content_to_save = markdown_content
@@ -138,15 +146,16 @@ class Preprocessor(BasePreprocessor):
         return markdown_content
 
     def _escape_tag(self, markdown_content: str, tag: str) -> str:
-        '''Replace the parts of content enclosed between
+        """Replace the parts of content enclosed between
         the same opening and closing pseudo-XML tags
         (e.g. ``<plantuml>...</plantuml>``)
         with the ``<escaped>...</escaped>`` pseudo-XML tags.
 
-        :param content_to_save: Markdown content
+        :param markdown_content: Markdown content
+        :param tag
 
         :returns: Markdown content with replaced raw parts of certain types
-        '''
+        """
         def _sub(match):
             self.logger.debug(f'Found tag to escape: {tag}')
 
@@ -156,25 +165,25 @@ class Preprocessor(BasePreprocessor):
             return f'<escaped hash="{content_to_save_hash}"></escaped>'
 
         tag_pattern = re.compile(
-            rf'(?<!\<)\<(?P<tag>{re.escape(tag)})' +
-            r'(?:\s[^\<\>]*)?\>.*?\<\/(?P=tag)\>',
+            rf'(?<!<)<(?P<tag>{re.escape(tag)})' +
+            r'(?:\s[^<>]*)?>.*?</(?P=tag)>',
             flags=re.DOTALL
         )
 
         return tag_pattern.sub(_sub, markdown_content)
 
     def escape(self, markdown_content: str) -> str:
-        '''Preparing to use parsing and rendering with Marko.
+        """Preparing to use parsing and rendering with Marko.
 
         :param markdown_content: Markdown content
 
         :returns: Markdown content with replaced raw parts
-        '''
+        """
 
         # exclude admonitions syntax:
         self.pre_blocks_pattern = r'(\={3}|\!{3}|\?{3}|\?{3}\+)\s((\w+)(?: +\"(.*)\")|\"(.*)\")'
 
-        md = marko.Markdown(renderer=MarkdownRenderer)
+        md = marko.Markdown(renderer=EscapeCodeMarkdownRenderer)
 
         self.content = md.parse(markdown_content)
 
@@ -195,15 +204,17 @@ class Preprocessor(BasePreprocessor):
         return markdown_content
 
     def escape_for_raw_type(self, markdown_content: str, raw_type: str) -> str:
-        '''Perform normalization. Replace the parts of Markdown content
+        """Perform normalization.
+        Replace the parts of Markdown content
         that should not be processed by following preprocessors
         with the ``<escaped>...</escaped>`` pseudo-XML tags.
         The ``unescapecode`` preprocessor should do reverse operation.
 
         :param markdown_content: Markdown content
+        :param raw_type
 
         :returns: Markdown content with replaced raw parts
-        '''
+        """
 
         for action in self.options.get('actions', []):
             if action == 'normalize':
@@ -251,10 +262,10 @@ class Preprocessor(BasePreprocessor):
         self.logger.info('Preprocessor applied')
 
 
-class foliantMarkdown(Markdown):
+class FoliantMarkdown(Markdown):
     def render(self, foliant_obj) -> str:
         """Call ``self.renderer.render(text)``.
-        Override this to handle parsed result.
+        Override this to handle the parsed result.
         """
         self.renderer.foliant_obj = foliant_obj
         parsed = foliant_obj.content
@@ -263,7 +274,7 @@ class foliantMarkdown(Markdown):
             return r.render(parsed)
 
 
-marko.Markdown = foliantMarkdown
+marko.Markdown = FoliantMarkdown
 
 
 class HTMLBlock(block.HTMLBlock):
@@ -292,7 +303,7 @@ class HTMLBlock(block.HTMLBlock):
             cls.id = 4
             return 4
         if source.expect_re(r" {,3}<!\[CDATA\["):
-            cls._end_cond = re.compile(r"\]\]>")
+            cls._end_cond = re.compile(r"]]>")
             cls.id = 5
             return 5
         block_tag = r"(?:{})".format("|".join(patterns.tags))
@@ -312,8 +323,13 @@ class HTMLBlock(block.HTMLBlock):
 
 block.HTMLBlock = HTMLBlock
 
-class MarkdownRenderer(MarkdownRenderer):
-    def _check_options(self, raw_type: str, actions) -> bool:
+class EscapeCodeMarkdownRenderer(MarkdownRenderer):
+    def __init__(self):
+        super().__init__()
+        self._prefix = None
+
+    @staticmethod
+    def _check_options(raw_type: str, actions) -> bool:
         if actions:
             for action in actions:
                 if type(action) == dict:
@@ -335,7 +351,6 @@ class MarkdownRenderer(MarkdownRenderer):
         lines = self.render_children(element).splitlines()
         pattern = foliant_obj.options.get('pattern_override', {}).get(raw_type, '')
         if run_escapecode:
-            if re.search(foliant_obj.pre_blocks_pattern, lines[0]): run_escapecode = False
             for i, line in enumerate(lines):
                 indent = " " * 4
                 if line.startswith(" "):
@@ -370,12 +385,12 @@ class MarkdownRenderer(MarkdownRenderer):
                 lines.append(line)
         last_line = self._second_prefix + "```"
         lines.append(last_line)
-        block = "\n".join(lines)
+        code_block = "\n".join(lines)
         if run_escapecode:
             if not re.search(r'<escaped*></escaped>', line):
-                block = foliant_obj.escape_for_raw_type(block, raw_type)
+                code_block = foliant_obj.escape_for_raw_type(code_block, raw_type)
         self._prefix = self._second_prefix
-        return self._prefix + block + "\n"
+        return self._prefix + code_block + "\n"
 
     def render_code_span(self, element: inline.CodeSpan) -> str:
         text = element.children
