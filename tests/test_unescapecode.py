@@ -105,3 +105,27 @@ class TestUnescapecode(TestCase):
                 'index.md': content_with_hash
             }
         )
+
+    def test_frontmatter(self):
+        content = data_file_content(os.path.join('data', 'expected', 'frontmatter_yaml.md'))
+        content_with_hash = data_file_content(os.path.join('data', 'input', 'frontmatter_yaml.md'))
+        self.ptf.test_preprocessor(
+            input_mapping = {
+                'index.md': content
+            },
+            expected_mapping = {
+                'index.md': content_with_hash
+            }
+        )
+
+    def test_frontmatter(self):
+        content = data_file_content(os.path.join('data', 'expected', 'frontmatter_toml.md'))
+        content_with_hash = data_file_content(os.path.join('data', 'input', 'frontmatter_toml.md'))
+        self.ptf.test_preprocessor(
+            input_mapping = {
+                'index.md': content
+            },
+            expected_mapping = {
+                'index.md': content_with_hash
+            }
+        )
