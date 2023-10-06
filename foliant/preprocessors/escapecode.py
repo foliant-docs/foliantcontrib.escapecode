@@ -257,9 +257,13 @@ class Preprocessor(BasePreprocessor):
                     return m.group(2)
                 def _sub_content(m):
                     return m.group(4)
+                def _sub_format(m):
+                    return m.group(1)
                 frontmatter = self.frontmatter_pattern.sub(_sub_frontmatter, markdown_content)
                 content = self.frontmatter_pattern.sub(_sub_content, markdown_content)
-                markdown_content = '---\n' + self.escape_for_raw_type(frontmatter, 'fence_blocks') + '\n---' + self.escape(content)
+                format = self.frontmatter_pattern.sub(_sub_format, markdown_content)
+                markdown_content = f"{format}\n" + self.escape_for_raw_type(frontmatter, 'fence_blocks') + f"\n{format}" + self.escape(content)
+                print(markdown_content)
             else:
                 markdown_content = self.escape(markdown_content)
 
