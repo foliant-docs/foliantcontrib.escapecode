@@ -266,7 +266,6 @@ class Preprocessor(BasePreprocessor):
                     if type(action) == dict:
                         for escape_action in action['escape']:
                             if escape_action == 'frontmatter':
-                                print(escape_action)
                                 frontmatter = self.escape_for_raw_type(frontmatter, 'fence_blocks')
                 markdown_content = f"{format}\n" + frontmatter + f"\n{format}\n" + self.escape(content)
             else:
