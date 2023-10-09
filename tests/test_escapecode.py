@@ -154,7 +154,7 @@ class TestEscapecode(TestCase):
             }
         )
 
-    def test_frontmatter(self):
+    def test_frontmatter_yaml(self):
         content = data_file_content(os.path.join('data', 'input', 'frontmatter_yaml.md'))
         content_with_hash = data_file_content(os.path.join('data', 'expected', 'frontmatter_yaml.md'))
         self.ptf.test_preprocessor(
@@ -166,7 +166,7 @@ class TestEscapecode(TestCase):
             }
         )
 
-    def test_frontmatter(self):
+    def test_frontmatter_toml(self):
         content = data_file_content(os.path.join('data', 'input', 'frontmatter_toml.md'))
         content_with_hash = data_file_content(os.path.join('data', 'expected', 'frontmatter_toml.md'))
         self.ptf.test_preprocessor(
