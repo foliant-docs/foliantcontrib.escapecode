@@ -25,7 +25,8 @@ class TestEscapecode(TestCase):
                         'fence_blocks',
                         'pre_blocks',
                         'inline_code',
-                        'comments'
+                        'comments',
+                        'frontmatter',
                     ]
                 }
             ],
@@ -144,6 +145,30 @@ class TestEscapecode(TestCase):
         }
         content = data_file_content(os.path.join('data', 'input', 'pattern_override.md'))
         content_with_hash = data_file_content(os.path.join('data', 'expected', 'pattern_override.md'))
+        self.ptf.test_preprocessor(
+            input_mapping = {
+                'index.md': content
+            },
+            expected_mapping = {
+                'index.md': content_with_hash
+            }
+        )
+
+    def test_frontmatter_yaml(self):
+        content = data_file_content(os.path.join('data', 'input', 'frontmatter_yaml.md'))
+        content_with_hash = data_file_content(os.path.join('data', 'expected', 'frontmatter_yaml.md'))
+        self.ptf.test_preprocessor(
+            input_mapping = {
+                'index.md': content
+            },
+            expected_mapping = {
+                'index.md': content_with_hash
+            }
+        )
+
+    def test_frontmatter_toml(self):
+        content = data_file_content(os.path.join('data', 'input', 'frontmatter_toml.md'))
+        content_with_hash = data_file_content(os.path.join('data', 'expected', 'frontmatter_toml.md'))
         self.ptf.test_preprocessor(
             input_mapping = {
                 'index.md': content

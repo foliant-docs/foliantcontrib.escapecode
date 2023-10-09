@@ -39,6 +39,7 @@ class Preprocessor(BasePreprocessor):
         self.content = None
         self.pre_blocks_pattern = None
         self._cache_dir_path = (self.project_path / self.options['cache_dir']).resolve()
+        self.frontmatter_pattern = re.compile(r'^((-|\+){3})\n([\s\S]*)\n((-|\+){3})([\s\S]*)')
 
         self.logger = self.logger.getChild('escapecode')
 
@@ -251,7 +252,24 @@ class Preprocessor(BasePreprocessor):
             with open(markdown_file_path, encoding='utf8') as markdown_file:
                 markdown_content = markdown_file.read()
 
-            markdown_content = self.escape(markdown_content)
+            if markdown_content.startswith('---') or markdown_content.startswith('+++'):
+                def _sub_frontmatter(m):
+                    return m.group(3)
+                def _sub_content(m):
+                    return m.group(6)
+                def _sub_format(m):
+                    return m.group(1)
+                frontmatter = self.frontmatter_pattern.sub(_sub_frontmatter, markdown_content)
+                content = self.frontmatter_pattern.sub(_sub_content, markdown_content)
+                format = self.frontmatter_pattern.sub(_sub_format, markdown_content)
+                for action in self.options.get('actions', []):
+                    if type(action) == dict:
+                        for escape_action in action['escape']:
+                            if escape_action == 'frontmatter':
+                                frontmatter = self.escape_for_raw_type(frontmatter, 'fence_blocks')
+                markdown_content = f"{format}\n" + frontmatter + f"\n{format}\n" + self.escape(content)
+            else:
+                markdown_content = self.escape(markdown_content)
 
             processed_content = markdown_content
 

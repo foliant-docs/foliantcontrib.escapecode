@@ -131,7 +131,8 @@ Meanings of parameters:
     * `pre_blocks`—pre code blocks;
     * `inline_code`—inline code;
     * `comments`—HTML-style comments, also usual for Markdown;
-    * `tags`—content of certain tags with the tags themselves, for example `plantuml` for `<plantuml>...</plantuml>`.
+    * `tags`—content of certain tags with the tags themselves, for example `plantuml` for `<plantuml>...</plantuml>`;
+    * `frontmatter`—the part with metadata at the beginning of the Markdown file, supports YAML `---` and TOML `+++` formats.
 * `pattern_override`—a regular expression that will not be escaped:
     * `pre_blocks`—the lines of the pre code block containing this template will not be escaped;
     * `inline_code`—pattern for inline code;
