@@ -1,3 +1,7 @@
+# 1.0.6
+
+- feat: frontmatter processing and option for frontmatter escaping
+
 # 1.0.5
 
 - feat: using Marko parser to identify pre blocks, fence blocks and inline code as well as comments
