@@ -1,3 +1,7 @@
+# 1.0.7
+
+- fix: the bug of incorrect selection of the frontmatter has been fixed
+
 # 1.0.6
 
 - feat: frontmatter processing and option for frontmatter escaping
