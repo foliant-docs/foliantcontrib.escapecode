@@ -39,7 +39,7 @@ class Preprocessor(BasePreprocessor):
         self.content = None
         self.pre_blocks_pattern = None
         self._cache_dir_path = (self.project_path / self.options['cache_dir']).resolve()
-        self.frontmatter_pattern = re.compile(r'^((-|\+){3})\n([\s\S]+?)\n((-|\+){3})([\s\S]*)')
+        self.frontmatter_pattern = re.compile(r'^((-|\+){3})\n([\s\S]*)\n((-|\+){3})([\s\S]*)')
 
         self.logger = self.logger.getChild('escapecode')
 
