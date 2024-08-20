@@ -1,3 +1,7 @@
+# 1.0.8
+
+- fix: render loose lists
+
 # 1.0.7
 
 - fix: the bug of incorrect selection of the frontmatter has been fixed

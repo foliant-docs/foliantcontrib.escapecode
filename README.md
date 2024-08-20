@@ -140,6 +140,8 @@ Meanings of parameters:
 
 ## Usage
 
+> The loose lists in the blockquote will be converted to tight lists after processing by the preprocessor
+
 Below you can see an example of Markdown content with code blocks and inline code.
 
     # Heading
