@@ -45,7 +45,7 @@ proident, sunt in culpa qui officia `<tag>` deserunt mollit anim id est laborum.
 >   - `pre_blocks` – velit esse cillum dolore eu fugiat nulla `action = normalize`;
 > - `inline_code` – aute irure dolor in reprehenderit in voluptate velit esse.
 
-## List 4 in blockquote (loose)
+## List 4 in blockquote (half-loose)
 
 > Test:
 >
