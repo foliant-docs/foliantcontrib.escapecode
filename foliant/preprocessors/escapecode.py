@@ -434,6 +434,9 @@ class EscapeCodeMarkdownRenderer(MarkdownRenderer):
 
     def render_list(self, element: block.List) -> str:
         result = []
+        if 'in_quote' in dir(element):
+            if element.in_quote == True:
+                element.tight = True
         if element.ordered:
             for num, child in enumerate(element.children, element.start):
                 with self.container(f"{num}. ", " " * (len(str(num)) + 2)):
@@ -444,19 +447,27 @@ class EscapeCodeMarkdownRenderer(MarkdownRenderer):
                     result.append(self.render(child))
         self._prefix = self._second_prefix
         for num, item in enumerate(result):
-            no_new_line = False
             lines = item.split("\n")
-            for i, line in enumerate(lines):
-                if len(lines) <= 2:
-                    no_new_line = True
-                if line.strip() == "":
-                    lines[i] = ""
-            if no_new_line:
-                result[num] = "\n".join(lines)
-            else:
-                result[num] = "\n".join(lines) +"\n"
+            result[num] = "\n".join(lines)
+        if element.tight:
+            return "".join(result)
+        else:
+            return "\n".join(result)
 
-        return "".join(result)
+    def render_quote(self, element: block.Quote) -> str:
+        element = self._add_quote_prop(element)
+        with self.container("> ", "> "):
+            result = self.render_children(element)
+        self._prefix = self._second_prefix
+        return result + "\n"
+
+    def _add_quote_prop(self, element):
+        for i, child in enumerate(element.children):
+            if 'tight' in dir(child):
+                element.children[i].in_quote = True
+            if 'children' in dir(child):
+                element.children[i] = self._add_quote_prop(child)
+        return element
 
     def render_html_block(self, element: block.HTMLBlock) -> str:
         children = element.children
