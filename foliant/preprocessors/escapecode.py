@@ -434,9 +434,7 @@ class EscapeCodeMarkdownRenderer(MarkdownRenderer):
 
     def render_list(self, element: block.List) -> str:
         result = []
-        if 'in_quote' in dir(element):
-            if element.in_quote == True:
-                element.tight = True
+        sep = ""
         if element.ordered:
             for num, child in enumerate(element.children, element.start):
                 with self.container(f"{num}. ", " " * (len(str(num)) + 2)):
@@ -449,10 +447,9 @@ class EscapeCodeMarkdownRenderer(MarkdownRenderer):
         for num, item in enumerate(result):
             lines = item.split("\n")
             result[num] = "\n".join(lines)
-        if element.tight:
-            return "".join(result)
-        else:
-            return "\n".join(result)
+        if not element.tight:
+            sep = f"{self._prefix}\n"
+        return sep.join(result)
 
     def render_quote(self, element: block.Quote) -> str:
         # adds a key 'in_quote' to all lists
