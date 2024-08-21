@@ -13,8 +13,6 @@
 > ```
 > pip install foliantcontrib.escapecode==1.0.4
 > ```
->
-> If you encounter any errors when using the escapecode preprocessor, please [create an issue](https://github.com/foliant-docs/foliantcontrib.escapecode/issues/new/choose).
 
 EscapeCode and UnescapeCode preprocessors work in pair.
 

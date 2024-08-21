@@ -455,7 +455,9 @@ class EscapeCodeMarkdownRenderer(MarkdownRenderer):
             return "\n".join(result)
 
     def render_quote(self, element: block.Quote) -> str:
+        # adds a key 'in_quote' to all lists
         element = self._add_quote_prop(element)
+
         with self.container("> ", "> "):
             result = self.render_children(element)
         self._prefix = self._second_prefix
