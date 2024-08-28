@@ -2,6 +2,17 @@
 
 # EscapeCode and UnescapeCode
 
+> **Warning**
+>
+> Starting from version `1.0.5`, the preprocessor uses the [marko parser](https://github.com/frostming/marko/tree/6ee598746bc9a76e62a158c5aa5226a3d65c0864).
+> This is necessary to more accurately identify code blocks nested in other markdown elements. But using the parser imposes the following restrictions:
+> - the indent of the list items will be converted to 2 spaces after processing by the preprocessor.
+>
+> If your documentation does not use deep nesting of markdown elements, you may want to use version `1.0.4`, as it is more stable. For install version `1.0.4`, run:
+> ```
+> pip install foliantcontrib.escapecode==1.0.4
+> ```
+
 EscapeCode and UnescapeCode preprocessors work in pair.
 
 EscapeCode finds in the source Markdown content the parts that should not be modified by any next preprocessors. Examples of content that should be left raw: fence code blocks, pre code blocks, inline code.

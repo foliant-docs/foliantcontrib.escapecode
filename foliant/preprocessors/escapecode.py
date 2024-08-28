@@ -434,6 +434,7 @@ class EscapeCodeMarkdownRenderer(MarkdownRenderer):
 
     def render_list(self, element: block.List) -> str:
         result = []
+        sep = ""
         if element.ordered:
             for num, child in enumerate(element.children, element.start):
                 with self.container(f"{num}. ", " " * (len(str(num)) + 2)):
@@ -444,19 +445,11 @@ class EscapeCodeMarkdownRenderer(MarkdownRenderer):
                     result.append(self.render(child))
         self._prefix = self._second_prefix
         for num, item in enumerate(result):
-            no_new_line = False
             lines = item.split("\n")
-            for i, line in enumerate(lines):
-                if len(lines) <= 2:
-                    no_new_line = True
-                if line.strip() == "":
-                    lines[i] = ""
-            if no_new_line:
-                result[num] = "\n".join(lines)
-            else:
-                result[num] = "\n".join(lines) +"\n"
-
-        return "".join(result)
+            result[num] = "\n".join(lines)
+        if not element.tight:
+            sep = f"{self._prefix}\n"
+        return sep.join(result)
 
     def render_html_block(self, element: block.HTMLBlock) -> str:
         children = element.children

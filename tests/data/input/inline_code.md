@@ -6,3 +6,80 @@ quis nostrud exercitation `$var = 0` ullamco laboris nisi ut aliquip ex ea commo
 consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse
 cillum dolore eu fugiat nulla `func(start, end)` pariatur. Excepteur sint occaecat cupidatat non
 proident, sunt in culpa qui officia `<tag>` deserunt mollit anim id est laborum.
+
+## List 1 (thing)
+
+- `cache_dir` – tempor incididunt ut labore et dolore magna aliqua `$var = 0` :
+  - `actions` – lorem ipsum `inline code` dolor sit amet, consectetur adipisicing;
+  - `normalize` – aute irure dolor in reprehenderit in voluptate velit esse:
+    - `escape` – enim ad minim veniam, quis nostrud exercitation;
+    - `fence_blocks` – aute irure dolor in reprehenderit in voluptate velit esse;
+  - `pre_blocks` – velit esse cillum dolore eu fugiat nulla `action = normalize`;
+- `inline_code` – aute irure dolor in reprehenderit in voluptate velit esse.
+
+## List 2 (loose)
+
+- `cache_dir` – tempor incididunt ut labore et dolore magna aliqua `$var = 0` :
+
+  - `actions` – lorem ipsum `inline code` dolor sit amet, consectetur adipisicing;
+
+  - `normalize` – aute irure dolor in reprehenderit in voluptate velit esse:
+
+    - `escape` – enim ad minim veniam, quis nostrud exercitation;
+
+    - `fence_blocks` – aute irure dolor in reprehenderit in voluptate velit esse;
+
+  - `pre_blocks` – velit esse cillum dolore eu fugiat nulla `action = normalize`;
+
+- `inline_code` – aute irure dolor in reprehenderit in voluptate velit esse.
+
+## List 3 in blockquote (thing)
+
+> Test:
+>
+> - `cache_dir` – tempor incididunt ut labore et dolore magna aliqua `$var = 0` :
+>   - `actions` – lorem ipsum `inline code` dolor sit amet, consectetur adipisicing;
+>   - `normalize` – aute irure dolor in reprehenderit in voluptate velit esse:
+>     - `escape` – enim ad minim veniam, quis nostrud exercitation;
+>     - `fence_blocks` – aute irure dolor in reprehenderit in voluptate velit esse;
+>   - `pre_blocks` – velit esse cillum dolore eu fugiat nulla `action = normalize`;
+> - `inline_code` – aute irure dolor in reprehenderit in voluptate velit esse.
+
+## List 4 in blockquote (half-loose)
+
+> Test:
+>
+> - `cache_dir` – tempor incididunt ut labore et dolore magna aliqua `$var = 0` :
+>
+>   - `actions` – lorem ipsum `inline code` dolor sit amet, consectetur adipisicing;
+>
+>   - `normalize` – aute irure dolor in reprehenderit in voluptate velit esse:
+>
+>     - `escape` – enim ad minim veniam, quis nostrud exercitation;
+>
+>     - `fence_blocks` – aute irure dolor in reprehenderit in voluptate velit esse;
+>
+>   - `pre_blocks` – velit esse cillum dolore eu fugiat nulla `action = normalize`;
+>
+> - `inline_code` – aute irure dolor in reprehenderit in voluptate velit esse.
+
+## List in the blockquote in the list
+
+- test 1
+  > Test:
+  >
+  > - `cache_dir` – tempor incididunt ut labore et dolore magna aliqua `$var = 0` :
+  >
+  >   - `actions` – lorem ipsum `inline code` dolor sit amet, consectetur adipisicing;
+  >
+  >   - `normalize` – aute irure dolor in reprehenderit in voluptate velit esse:
+  >
+  >     - `escape` – enim ad minim veniam, quis nostrud exercitation;
+  >
+  >     - `fence_blocks` – aute irure dolor in reprehenderit in voluptate velit esse;
+  >
+  >   - `pre_blocks` – velit esse cillum dolore eu fugiat nulla `action = normalize`;
+  >
+  > - `inline_code` – aute irure dolor in reprehenderit in voluptate velit esse.
+
+- test 2
