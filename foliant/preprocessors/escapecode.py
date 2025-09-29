@@ -405,7 +405,7 @@ class EscapeCodeMarkdownRenderer(MarkdownRenderer):
         lines.append(last_line)
         code_block = "\n".join(lines)
         if run_escapecode:
-            if not re.search(r'<escaped*></escaped>', line):
+            if not re.search(r'<escaped*></escaped>', code_block):
                 code_block = foliant_obj.escape_for_raw_type(code_block, raw_type)
         self._prefix = self._second_prefix
         return self._prefix + code_block + "\n"

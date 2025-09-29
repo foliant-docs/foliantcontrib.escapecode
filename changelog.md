@@ -1,3 +1,7 @@
+# 1.0.9
+
+-   fix: error
+
 # 1.0.8
 
 - fix: render loose lists
